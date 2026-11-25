@@ -84,7 +84,7 @@ python scripts/verify.py -v                   # 打印失败详情
 
 | 切片 | 主题 | 状态 |
 | --- | --- | --- |
-| 1 | 规则模型与三键版本绑定 | ✅ 已完成（27 项断言全绿） |
+| 1 | 规则模型与三键版本绑定 | ✅ 已完成并通过评审（49 项断言全绿） |
 | 2 | DSL 判定引擎 | ⬜ 待实现 |
 | 3 | 事实层 | ⬜ 待实现 |
 | 4 | 审查意见与引用闸门 | ⬜ 待实现 |
@@ -122,7 +122,7 @@ python scripts/verify.py -v                   # 打印失败详情
 
 ```bash
 cd .worktrees/review
-python scripts/verify.py --slice 1     # 先复现实现方的结果（预期 27/27）
+python scripts/verify.py --slice 1     # 先复现实现方的结果（预期 49/49）
 # 审阅 → 如需修改 → git add -A && git commit -m "review: ..."
 ```
 
