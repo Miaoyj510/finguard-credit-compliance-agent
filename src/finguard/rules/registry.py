@@ -108,6 +108,13 @@ class RuleStore:
     def versions_of(self, rule_id: str) -> Tuple[Rule, ...]:
         return tuple(self._by_rule_id.get(rule_id, ()))
 
+    def get(self, rule_id: str, version: str) -> Rule:
+        """按 (rule_id, version) 精确取规则。取不到直接报错——不静默回退到别的版本。"""
+        for rule in self._by_rule_id.get(rule_id, ()):
+            if rule.version == version:
+                return rule
+        raise KeyError("规则版本不存在：%s@%s" % (rule_id, version))
+
     # ---------------- 三键取版本（核心） ----------------
     def bind(self, business_date: date, product_type: str, org_level: str) -> BindingResult:
         """按「业务发生日 × 产品类型 × 机构层级」取唯一适用版本。

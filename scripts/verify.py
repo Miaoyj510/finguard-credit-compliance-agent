@@ -57,7 +57,7 @@ SUITES: Dict[str, Dict] = {
     "dsl": {
         "slice": 2,
         "desc": "DSL 判定引擎（命中 / 不命中 / 不适用）",
-        "modules": [],
+        "modules": ["tests.test_dsl", "tests.test_engine"],
     },
     "facts": {
         "slice": 3,
