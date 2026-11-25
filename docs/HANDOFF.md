@@ -86,9 +86,46 @@
 
 ### 评审意见（由评审方填写）
 
+> 评审方：agent-b（review/impl）。评审基线 `a5eaceb` → `736ce8b`，深度审阅（核心逻辑约 500 行全读 + 探针验证）。
+> **结论：实现与切片 1 目标一致（on target），5 处关键设计点成立，留档 3 个问题确认已修。**
+> 发现 8 处数据质量闸/验证脚本缺陷，已在本分支修复并补回归断言（先红后绿）；4 处咨询项留实现方决策或后续切片。
+> 修复后验证：**49 / 49 全部通过**（原 27 + 新增 22），完整回归与 `--checkpoint commit` 均退出码 0。
+
 | # | 位置 | 问题 | 严重度 | 建议改法 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-|  |  |  |  |  |  |
+| 1 | `src/finguard/domain/rule.py` `__post_init__` | `effective_from` 完全未校验：`None`/字符串/`datetime` 均可入库，到 `bind()` 才炸 `TypeError`。FR-RAG-03 与 7.2「版本三元组强制」均列其为必填 | 中 | 构造期校验 `type(effective_from) is date`（`datetime` 是 `date` 子类但与 `date` 比较会 TypeError，一并拒绝）；`effective_to` 非 None 时同样校验类型 | ✅ 已修（断言：缺/非日期/datetime 冒充被拒） |
+| 2 | `src/finguard/domain/rule.py` `covers_product/org` | scope 误写为 str（`("小额经营贷")` 漏逗号）时 `in` 退化为**子串匹配**：探针证实 `covers_product("小额")=True` 且 `bind` 静默命中——用错规则判业务是合规事故类 | 中 | 新增 `_normalize_scope`：拒绝 str，tuple/list 规范化为 tuple，元素须非空、无首尾空白；`required_facts` 同治 | ✅ 已修（断言：字符串 scope/空白元素被拒，list 规范化） |
+| 3 | `src/finguard/domain/rule.py` `RULE_ID_RE` | `match` + `$` 放过尾随换行：`"R-CR-013\n"` 与 `"R-CR-013"` 同版本可**双双入库绕过重复闸**（探针 P4b 证实）；`\d` 还放过全角数字 | 中 | 改 `fullmatch` + `re.ASCII` | ✅ 已修（断言：尾随换行/全角数字被拒） |
+| 4 | `src/finguard/domain/rule.py` `source_ref`/`version` 校验 | 纯空白 `source_ref="   "`、`version="  "` 可入库：出处闸与版本身份形同虚设（`dsl` 有 strip 校验而这两处没有，不一致） | 中 | 补 `isinstance(str)` + `strip()` 非空校验 | ✅ 已修 |
+| 5 | `src/finguard/domain/case.py` `TripleKey.__post_init__` | `business_date=None`/字符串可构造；`product_type="  "` 纯空白可构造。三键是版本选择唯一依据（PRD 4.3 受理必填），缺键/脏键让「可复算」失效 | 中 | 构造期校验 `business_date` 为 date、两键为非空无首尾空白字符串 | ✅ 已修（新增 `tests/test_case_model.py`） |
+| 6 | `scripts/verify.py` 套件解析 | `--slice 2` / `--suite dsl` 跑**空套件**打印「0 / 0 全部通过」退出码 0（假绿），违反脚本自身设计约定第 3 条；CI 若按切片调用会被误导 | 中 | 显式请求未实现套件 → 提示「待实现」并退出码 2；混合请求只跑已启用套件并注记待实现项 | ✅ 已修（新增 `tests/test_verify_entry.py`，只测不运行套件的参数路径，避免递归） |
+| 7 | `tests/` 覆盖缺口 | HANDOFF 关键设计点 5 `bind_case()` 写回**无任何断言** | 低 | 补写回正确性与可复算两条断言 | ✅ 已修 |
+| 8 | `src/finguard/rules/registry.py` | `RuleBinding.effective_to: object`、`bind_case` 无类型标注；`Sequence`/`field` 未使用导入 | 低 | 改 `Optional[date]`、`CaseState` 标注，清理导入 | ✅ 已修 |
+| 9 | `src/finguard/rules/registry.py` `bind()` 0 命中分支 | 「范围排除」（产品/机构不适用）与「时间版本缺口」共用 `NO_VERSION_MATCH` 且 detail 文案相同，但人工处置动作不同（确认不适用 vs 补发版本，见 F-01）。**语义本身是 ROADMAP 切片 1 验收标准（产品/机构不适用→须人工判定），不改**；仅提示待定池会常驻范围外规则 | 低（咨询） | 建议 detail 区分两种成因或加子原因码，供切片 4 覆盖度统计与 Q-09 金标口径定义时采用 | ⏸ 留实现方决策 |
+| 10 | PRD FR-RAG-04 措辞 | 「多版本重叠时按生效区间优先级裁决」易被读成系统自动裁决。实现取保守路径（重叠一律须人工判定 + 列候选），与 FR-RAG-05 / F-01 / E2 一致，是正确取舍 | 低（咨询） | 建议 PRD 责任人在后续修订中明确「裁决」指人工裁决并记录依据；代码不改 | 📁 留档 |
+| 11 | `src/finguard/domain/case.py` `CaseState` vs PRD 8.4/8.6 | 实现把 bindings/unresolved 分列；PRD 8.4 示例与 8.6 Handoff 表把 unresolved 放在 `rule_binding` 内并带原因码。骨架期可接受，但切片 5 补齐时须对齐口径 | 低 | 切片 5 定稿 CaseState/Handoff schema 时与 PRD 8.4/8.6 对齐（或 PRD 修订认可分列） | 📁 留切片 5 |
+| 12 | `src/finguard/domain/case.py` | docstring 声称「三键受理后锁定不可修改」但 `CaseState` 可变、未强制；`CASE_ID_PREFIX="FG"` 定义后未使用（案件号格式未校验） | 低 | 锁定语义与案件号校验在切片 5 状态机落地；常量届时接线或删除 | 📁 留切片 5 |
+
+#### 「评审方请确认」五项的答复
+
+1. **三条分支是否覆盖全部情形**：1 / 0 / ≥2 结构上穷尽。0 命中分支混淆了两种成因（意见 9），语义按 ROADMAP 验收标准执行，不改。
+2. **左闭右开是否符合业务预期**：符合。边界断言 + 探针确认 `effective_from` 当天取新版、`effective_to` 当天旧版已失效；`effective_to=None` 长期有效与 PRD 8.4 示例（`effective_to: null`）一致。
+3. **「绝不按最新版硬判」是否被代码路径阻断**：是。`bind()` 仅唯一命中进 `bindings`；`version_of()` 未绑定抛 `KeyError`；全源码 grep 无 latest/max/取末位等回退路径。
+4. **必填字段清单与 FR-RAG-03 一致性**：修复后覆盖 PRD 全部 7 个必填字段（另含 severity/dsl）。**修复前漏 `effective_from`**（意见 1）；`effective_to` 允许 None 有 PRD 8.4 示例背书。
+5. **断言是否覆盖「不该发生的事」**：原 27 项覆盖重复版本/倒置区间/缺出处等；本轮新增 22 项覆盖空白值/类型冒充/换行绕过/str scope 子串误匹配/验证脚本假绿，全部先在旧代码上跑红再修复转绿。
+
+#### 验证证据（本评审会话实际运行）
+
+| 命令 | 结果 |
+| --- | --- |
+| `python scripts/verify.py --slice 1`（修复前复现） | 27 / 27，退出码 0 |
+| 新增 22 条断言 + 扩展 1 条既有用例，在旧代码上运行 | 17 条新断言失败 + 既有用例 2 个新子例失败（合计 20 failures + 1 error），其余旧断言零回归 |
+| `python scripts/verify.py --slice 1`（修复后） | **49 / 49**，退出码 0 |
+| `python scripts/verify.py`（完整回归）/ `--checkpoint commit` | 49 / 49，退出码 0 |
+| `python scripts/verify.py --slice 2` / `--suite dsl` | 退出码 2，不再输出「全部通过」 |
+| 探针 P1—P14（构造期漏洞逐条复测） | 全部 `ValueError` 拒绝；正例对照（list 规范化/通配/唯一绑定）通过 |
+
+> 给实现方：合并 `review/impl` → `feat/impl` 后，请把本文件切片 1「验证命令」的预期从 **27 / 27** 同步为 **49 / 49**（该段落属实现方，评审方未改）。PRD、ROADMAP 验收标准未动。
 
 ### 合并方式
 
