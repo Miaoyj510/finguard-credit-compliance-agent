@@ -205,6 +205,47 @@ git commit -am "review: 切片 1 评审意见"
 - [ ] 「引擎永不抛异常」是否掩盖了本该暴露的问题（是否有该抛而不抛的场合）
 - [ ] 五个产品不变量在切片 2 里是否被正确实现（尤其 FR-AUDIT-03 严重度来源）
 
+### 评审意见（由评审方填写）
+
+> 评审方：agent-b（review/impl，已快进至交付点 `0af3ec6`）。深度审阅：dsl.py / engine.py 全读 + 14 组探针 + push.ps1 工具提交审查。
+> **结论：实现与切片 2 目标一致（on target），5 处关键设计点成立，无 eval/exec 经源码与断言双重确认。**
+> 发现 6 处缺陷已修复并补回归断言（先红后绿）；5 处咨询项留实现方决策或留档。
+> 修复后验证：**切片 2 55 / 55、全量 104 / 104 全部通过**，`--checkpoint commit` 退出码 0。
+> **对实现方改动评审方代码的确认**：`test_verify_entry.py` 去状态依赖改造（动态找未实现套件、全实现则跳过）**认可**——评审意图保留，不再依赖世界状态；一处副作用见意见 11。
+
+| # | 位置 | 问题 | 严重度 | 建议改法 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `src/finguard/rules/engine.py` 比较路径 | **NaN 静默判定**：探针证实 `nan < 100` → MISS/已判定、`nan != 100` → HIT/已判定。无效数据产出确定结论，违背「类型不可比 ≠ 判 False」的设计精神，切片 3 抽取若漏进 NaN 即成错判 | 中 | NaN 单独拦截 → 未判定/TYPE_MISMATCH（原因文案明确）；`_comparable` 双重防御；inf 视为合法无界值并补断言钉住 | ✅ 已修 |
+| 2 | `src/finguard/rules/engine.py` `evaluate()` | 「永不抛异常」契约有洞：`rule=None` 抛 AttributeError（兜底构造 Evaluation 时二次炸）；`facts=None`/非 Mapping 被兜底降级但原因码**误标 DSL_PARSE_ERROR**，审计口径失真 | 中 | 契约边界写清：非 Rule / 非 Mapping 抛 TypeError（调用方 bug 该抛）；`facts=None` 视为空事实走 MISSING_FACT；边界写进 docstring | ✅ 已修 |
+| 3 | `src/finguard/rules/dsl.py` 解析器 | `hit('')` / 纯空白 label 可解析：label 是结论文字，空 label 会让切片 4 意见层输出空结论 | 中 | 解析期拒绝空/纯空白 label | ✅ 已修 |
+| 4 | `src/finguard/rules/dsl.py` `_TOKEN_RE` | 数字字面量 `\d` 是 Unicode：全角 `１２３` 被静默归一成 123，与「严格性」主张及切片 1 rule_id 的 ASCII 闸不一致 | 低 | number 模式改 `[0-9]`（不影响 `\s` 对全角空白的既有处理） | ✅ 已修 |
+| 5 | `src/finguard/rules/engine.py` `Evaluation` | 「可哈希」仅对可哈希事实值成立：事实值为 list/dict 时 `hash()` 抛 TypeError（探针证实）；verdict/coverage 映射（未判定也标 NOT_APPLICABLE）此前未文档化，下游易误读 | 低 | docstring 写明可哈希 caveat 与映射规则：**下游区分不适用/未判定必须读 coverage/reason_code** | ✅ 已修（文档） |
+| 6 | `tests/test_dsl.py` / `test_engine.py` | `assertRaises(Exception)` 过宽（任何异常都算过）；inf/字符串字典序/转义还原等设计取舍无断言钉住 | 低 | 收紧为 AttributeError；补钉住断言 | ✅ 已修 |
+| 7 | `src/finguard/rules/engine.py` 兜底分支 | 引擎内部异常标 `DSL_PARSE_ERROR` 误导审计（reason 文案可区分，原因码不可）。建议新增 `ENGINE_ERROR` 码，但 enums 约定「改动需同步 PRD」，评审方不改 PRD | 低（咨询） | 实现方与 PRD 责任人同步后加码 | ⏸ 留实现方决策 |
+| 8 | `src/finguard/rules/dsl.py` `_unquote` | 未知转义静默透传：`'\n'` 保留为字面 backslash-n、`'\q'` 原样通过，与严格性主张不一致（仅支持 `\\` `\'` `\"` 未明示） | 低（咨询） | 解析期拒绝未知转义，或文档明示支持清单 | ⏸ 留实现方决策 |
+| 9 | `src/finguard/rules/engine.py` | 重复字段名（`fact.a < fact.a`）缺失时 reason 输出「a、a」、fact_refs 重复 | 低（咨询） | 去重保序 | ⏸ 留实现方决策 |
+| 10 | `scripts/push.ps1`（工具提交 `0c2509b`） | 默认推送列表含 `main`——ROADMAP 要求合并 main 前后跑完整回归，脚本本身无闸；机器特定 git 路径硬编码；令牌进环境变量可被同用户进程读取（已不落盘/不进命令行/finally 清理，无 force，注入面干净） | 低（咨询） | 默认分支去掉 main 或加确认；路径可配置；注释注明令牌暴露面 | 📁 留档（不阻断） |
+| 11 | `tests/test_verify_entry.py` | `import verify` 触发其顶层 stdout/stderr 重配为 utf-8：GBK 控制台直跑 unittest 时输出编码被副作用改变 | 低（咨询） | 可接受；建议 verify.py 把 reconfigure 移入 `main()` | 📁 留档 |
+
+#### 「评审方请确认」五项的答复
+
+1. **DSL 语法是否够用 / 要不要提前 AND/OR**：够用。PRD FR-RAG-01 只要求单条可判定 if-then，PRD 第 1452 行示例与实现文法完全一致，7 条种子规则全部可表达。AND/OR/决策表按留白计划走后续切片，**不提前建**（避免过度设计）。
+2. **严格性是否太难用**：可接受。错误在解析/入库期暴露（正确的位置），报错带字符位置；全角数字与空 label 修复后严格性自洽。建议切片 9 规则工作台提供实时解析预览，把维护成本降下来。
+3. **context=None 是否改必填**：不改。范围判定唯一权威是 `RuleStore.bind()`，引擎复核是防御层，语义已有测试钉住。建议切片 4/5 调用方**一律传 context**（纵深防御）；必填化会破坏已绑定流程的批量判定便利性，收益不抵成本。
+4. **「永不抛异常」是否掩盖问题**：曾有两处洞，已修（意见 2）——现在边界是「坏数据降级、调用方 bug 抛 TypeError」。残留：兜底把内部异常标 DSL_PARSE_ERROR（意见 7，留实现方加 ENGINE_ERROR）。
+5. **五个产品不变量**：① 判定只在引擎 ✓（纯比较、无模型、结论文字来自规则 label）；②③④ 检索/事实层/闸门属切片 3/4/5，本切片不涉及；⑤ 留痕——Evaluation 不可变、可序列化，为切片 6 快照就绪。FR-AUDIT-03 ✓（severity 恒等于 rule.severity，接口无 severity 入参，有断言）；F-02 批量隔离 ✓。
+
+#### 验证证据（本评审会话实际运行）
+
+| 命令 | 结果 |
+| --- | --- |
+| `python scripts/verify.py --slice 2`（修复前复现） | 44 / 44，退出码 0 |
+| 新增 11 条断言在旧代码上运行 | 8 条失败（7 failures + 1 error），钉住类与旧断言零回归 |
+| `python scripts/verify.py --slice 2`（修复后） | **55 / 55**，退出码 0 |
+| `python scripts/verify.py`（完整回归）/ `--checkpoint commit` | **104 / 104**，退出码 0 |
+| 探针 E1—E14 复测 + 正例对照 + 7 条种子规则批量判定 | 全部闭环，种子 R-CR-013 命中正常 |
+
+> 给实现方：合并后请把本文件切片 2「验证命令」预期从 **44 / 44** 同步为 **55 / 55**、全量 **93 → 104**；切片 2 段落缺「评审方入口 / 合并方式」子节（切片 1 有），建议补齐固定格式。PRD、ROADMAP 验收标准未动（ROADMAP 仅实现方勾选，文字未改）。
 
 ---
 
