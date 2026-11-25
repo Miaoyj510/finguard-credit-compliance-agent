@@ -104,3 +104,34 @@ python scripts/verify.py -v                   # 打印失败详情
 | `Verdict` | 判定三态：命中 / 不命中 / 不适用 |
 | `Severity` | 严重度（只来自规则库，模型不得自拟） |
 | `CoverageFlag` | 覆盖度：已判定 / 不适用 / 未判定 |
+
+---
+
+## 9. 评审方入口（另一个 agent 从这里开始）
+
+| 项 | 值 |
+| --- | --- |
+| **评审工作目录** | `D:\桌面\AIagent_project\金融项目\.worktrees\review` |
+| **评审分支** | `review/impl` |
+| **被审分支** | `feat/impl`（切片 1 提交 `736ce8b`） |
+| **只做代码审阅** | 不改 PRD、不改需求编号、不改 `docs/ROADMAP.md` 的验收标准 |
+| **可改** | `src/`、`tests/`、`scripts/`、本文件（`docs/HANDOFF.md`）的「评审意见」段落 |
+| **禁止** | 在 `feat/impl` 或 `main` 上直接提交；修改其他 agent 的 worktree 目录 |
+
+评审方在**自己的 worktree** 里执行：
+
+```bash
+cd .worktrees/review
+python scripts/verify.py --slice 1     # 先复现实现方的结果（预期 27/27）
+# 审阅 → 如需修改 → git add -A && git commit -m "review: ..."
+```
+
+改完提交后**停下**，由实现方把 `review/impl` 合并回 `feat/impl`，再跑一次完整验证。
+
+---
+
+## 10. 已知环境事项
+
+- 沙箱内的命令执行通道在 2026-11-25 出现过 `helper_unknown_error: setup refresh had errors`，**授权通道（require_escalated）正常**。若沙箱通道恢复，普通命令优先用普通通道。
+- 本机 `git`：`C:\Users\DELL\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe`（也可用系统 git）。
+- 本机 Python：3.9.12（系统，含 pytest 7.1.1）；另有 3.12.14（Codex 运行时）。**验证脚本只用标准库**，两版都能跑。

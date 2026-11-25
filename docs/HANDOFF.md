@@ -73,6 +73,23 @@
 - [ ] 模型层校验的字段清单是否与 PRD 6.1 FR-RAG-03 一致（有没有漏掉该强制为必填的）
 - [ ] 断言是否覆盖了「不该发生的事」（如重复版本、倒置区间、缺出处）
 
+### 评审方入口
+
+| 项 | 值 |
+| --- | --- |
+| 评审工作目录 | `D:\桌面\AIagent_project\金融项目\.worktrees\review` |
+| 评审分支 | `review/impl`（基于 `feat/impl` 的 `736ce8b`） |
+| 先做什么 | `cd .worktrees/review && python scripts/verify.py --slice 1` 复现结果 |
+| 只改什么 | `src/`、`tests/`、`scripts/`，以及本文件的「评审意见」段落 |
+| 不改什么 | PRD、需求编号、验收标准、`docs/ROADMAP.md` |
+| 提交后 | 停下，由实现方合并 `review/impl` → `feat/impl` 并复跑完整验证 |
+
+### 评审意见（由评审方填写）
+
+| # | 位置 | 问题 | 严重度 | 建议改法 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |
+
 ### 合并方式
 
 ```bash
