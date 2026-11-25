@@ -7,8 +7,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
+from ..domain.case import CaseState
 from ..domain.enums import UnresolvedReasonCode
 from ..domain.rule import Rule
 
@@ -20,7 +21,7 @@ class RuleBinding:
     rule_id: str
     version: str
     effective_from: date
-    effective_to: object  # Optional[date]
+    effective_to: Optional[date]
     binding_basis: str   # 三键唯一命中
 
     def to_dict(self) -> dict:
@@ -159,7 +160,7 @@ class RuleStore:
 
         return BindingResult(bindings=tuple(bindings), unresolved=tuple(unresolved))
 
-    def bind_case(self, case) -> "object":
+    def bind_case(self, case: CaseState) -> CaseState:
         """对 CaseState 做绑定并写回 state。返回 CaseState。"""
         result = self.bind(
             case.triple_key.business_date,

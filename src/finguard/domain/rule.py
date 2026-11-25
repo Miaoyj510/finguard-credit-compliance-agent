@@ -6,13 +6,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from typing import Optional, Tuple
 
 from .enums import Severity
 
-RULE_ID_RE = re.compile(r"^R-[A-Z]+-\d+$")
+# re.ASCII：\d 只认 ASCII 数字，全角数字（０１３）不是合法序号
+RULE_ID_RE = re.compile(r"^R-[A-Z]+-\d+$", re.ASCII)
 WILDCARD = "*"
 
 
@@ -38,24 +39,59 @@ class Rule:
 
     # ---------------- 构造期校验（FR-RAG-03 必填字段） ----------------
     def __post_init__(self) -> None:
-        if not RULE_ID_RE.match(self.rule_id or ""):
-            raise ValueError("rule_id 非法：%r（应形如 R-CR-013）" % (self.rule_id,))
-        if not self.version:
+        # fullmatch 而非 match：$ 会放过尾随换行，让 "R-CR-013\n" 绕过重复版本闸
+        if not isinstance(self.rule_id, str) or not RULE_ID_RE.fullmatch(self.rule_id):
+            raise ValueError("rule_id 非法：%r（应形如 R-CR-013，不含空白）" % (self.rule_id,))
+        if not isinstance(self.version, str) or not self.version.strip():
             raise ValueError("规则 %s 缺少 version" % self.rule_id)
-        if not self.product_scope:
-            raise ValueError("规则 %s 缺少 product_scope" % self.rule_id)
-        if not self.org_scope:
-            raise ValueError("规则 %s 缺少 org_scope" % self.rule_id)
+        # type() is date：datetime 是 date 的子类，但与 date 比较会 TypeError，须挡在构造期
+        if type(self.effective_from) is not date:
+            raise ValueError(
+                "规则 %s@%s 缺少 effective_from 或类型非法（须为 datetime.date）"
+                % (self.rule_id, self.version)
+            )
+        if self.effective_to is not None and type(self.effective_to) is not date:
+            raise ValueError(
+                "规则 %s@%s 的 effective_to 类型非法（须为 datetime.date 或 None）"
+                % (self.rule_id, self.version)
+            )
         if self.effective_to is not None and self.effective_to <= self.effective_from:
             raise ValueError(
                 "规则 %s@%s 的 effective_to 必须晚于 effective_from" % (self.rule_id, self.version)
             )
-        if not self.dsl or not self.dsl.strip():
+        for name in ("product_scope", "org_scope"):
+            scope = self._normalize_scope(name, getattr(self, name))
+            if not scope:
+                raise ValueError("规则 %s 缺少 %s" % (self.rule_id, name))
+            object.__setattr__(self, name, scope)
+        object.__setattr__(
+            self, "required_facts", self._normalize_scope("required_facts", self.required_facts)
+        )
+        if not isinstance(self.dsl, str) or not self.dsl.strip():
             raise ValueError("规则 %s@%s 缺少 dsl" % (self.rule_id, self.version))
-        if not self.source_ref:
+        if not isinstance(self.source_ref, str) or not self.source_ref.strip():
             raise ValueError("规则 %s@%s 缺少 source_ref（引用可回溯率的基础）" % (self.rule_id, self.version))
         if not isinstance(self.severity, Severity):
             raise ValueError("规则 %s@%s 的 severity 非法" % (self.rule_id, self.version))
+
+    @staticmethod
+    def _normalize_scope(field_name: str, value) -> Tuple[str, ...]:
+        """范围字段必须是 tuple/list of 非空字符串，统一规范化为 tuple。
+
+        显式拒绝 str：("小额经营贷") 漏写逗号就是 str，`in` 会退化成子串匹配，
+        让「小额」之类的产品名静默误绑到本规则——这是合规事故，不是小毛病。
+        """
+        if isinstance(value, str) or not isinstance(value, (tuple, list)):
+            raise ValueError(
+                "%s 须为字符串 tuple 或 list，得到 %r（单元素 tuple 别漏逗号）"
+                % (field_name, value)
+            )
+        for item in value:
+            if not isinstance(item, str) or not item.strip() or item != item.strip():
+                raise ValueError(
+                    "%s 含非法元素 %r（须为非空字符串、无首尾空白）" % (field_name, item)
+                )
+        return tuple(value)
 
     # ---------------- 适用范围判定 ----------------
     def covers_product(self, product_type: str) -> bool:

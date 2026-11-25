@@ -51,7 +51,8 @@ SUITES: Dict[str, Dict] = {
     "rules": {
         "slice": 1,
         "desc": "规则模型与三键版本绑定（须人工判定）",
-        "modules": ["tests.test_rule_model", "tests.test_rule_registry"],
+        "modules": ["tests.test_rule_model", "tests.test_rule_registry",
+                    "tests.test_case_model", "tests.test_verify_entry"],
     },
     "dsl": {
         "slice": 2,
@@ -226,7 +227,16 @@ def main() -> int:
     else:
         names = enabled_suites()
 
+    # 设计约定 3：未启用的套件不计入通过率。显式请求未实现的切片/套件时
+    # 不得跑空套件打印「0 / 0 全部通过」——那是假绿，退出码必须非 0。
+    pending = [n for n in names if not SUITES[n]["modules"]]
+    names = [n for n in names if SUITES[n]["modules"]]
+    if pending:
+        print("待实现套件（不计入通过率）：%s" % ", ".join(pending))
     if not names:
+        if args.slice is not None or args.suite:
+            print("所请求的切片/套件尚未实现，没有可运行的断言——不输出通过结果。")
+            return 2
         print("没有可运行的套件——先实现一个切片再验证。")
         print_matrix()
         return 0

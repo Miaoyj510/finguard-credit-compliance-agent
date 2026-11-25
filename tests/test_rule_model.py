@@ -32,7 +32,8 @@ class TestRuleValidation(unittest.TestCase):
 
     def test_非法rule_id被拒(self):
         """格式为 R-<域>-<数字序号>；缺段、小写、非数字序号一律拒绝。"""
-        for bad in ("CR-013", "R-cr-013", "", "X-1", "R-CR-", "R-CR-013A", "-CR-013"):
+        for bad in ("CR-013", "R-cr-013", "", "X-1", "R-CR-", "R-CR-013A", "-CR-013",
+                    "R-CR-013\n", "R-CR-０１３"):
             with self.subTest(rule_id=bad):
                 with self.assertRaises(ValueError):
                     make_rule(rule_id=bad)
@@ -67,6 +68,66 @@ class TestRuleValidation(unittest.TestCase):
             make_rule(effective_from=date(2025, 7, 1), effective_to=date(2025, 7, 1))
         with self.assertRaises(ValueError):
             make_rule(effective_from=date(2025, 7, 1), effective_to=date(2024, 1, 1))
+
+
+class TestRequiredFieldGates(unittest.TestCase):
+    """评审补强的回归断言：FR-RAG-03 必填字段与数据质量闸的盲区。
+
+    每条都对应一个在旧代码上可复现的入库漏洞（探针 P1—P11）。
+    """
+
+    def test_缺effective_from被拒(self):
+        """FR-RAG-03 / 7.2：effective_from 必填；None 入库会在 bind 时炸 TypeError。"""
+        with self.assertRaises(ValueError):
+            make_rule(effective_from=None)
+
+    def test_effective_from非日期被拒(self):
+        with self.assertRaises(ValueError):
+            make_rule(effective_from="2025-07-01")
+
+    def test_datetime冒充date被拒(self):
+        """datetime 是 date 的子类，但与 date 比较会 TypeError，构造期就要挡住。"""
+        from datetime import datetime
+        with self.assertRaises(ValueError):
+            make_rule(effective_from=datetime(2025, 7, 1))
+
+    def test_effective_to非日期被拒(self):
+        with self.assertRaises(ValueError):
+            make_rule(effective_to="2026-01-01")
+
+    def test_空白source_ref被拒(self):
+        """纯空白出处 = 没有出处，引用可回溯率的地基不能靠空格通过。"""
+        with self.assertRaises(ValueError):
+            make_rule(source_ref="   ")
+
+    def test_空白version被拒(self):
+        with self.assertRaises(ValueError):
+            make_rule(version="  ")
+
+    def test_字符串product_scope被拒(self):
+        """("小额经营贷") 漏逗号是 str：子串匹配会把「小额」误绑到本规则。"""
+        with self.assertRaises(ValueError):
+            make_rule(product_scope="小额经营贷")
+
+    def test_字符串org_scope被拒(self):
+        with self.assertRaises(ValueError):
+            make_rule(org_scope="一级分行")
+
+    def test_空白scope元素被拒(self):
+        for bad in (("",), ("  ",), (" 小额经营贷 ",)):
+            with self.subTest(scope=bad):
+                with self.assertRaises(ValueError):
+                    make_rule(product_scope=bad)
+
+    def test_list_scope规范化为tuple(self):
+        r = make_rule(product_scope=["小额经营贷"], org_scope=["*"])
+        self.assertIsInstance(r.product_scope, tuple)
+        self.assertTrue(r.covers_product("小额经营贷"))
+        self.assertFalse(r.covers_product("小额"))
+
+    def test_字符串required_facts被拒(self):
+        with self.assertRaises(ValueError):
+            make_rule(required_facts="monthly_revenue")
 
 
 class TestRuleScope(unittest.TestCase):

@@ -21,10 +21,15 @@ class TripleKey:
     org_level: str       # 机构层级
 
     def __post_init__(self) -> None:
-        if not self.product_type:
-            raise ValueError("三键缺少 product_type")
-        if not self.org_level:
-            raise ValueError("三键缺少 org_level")
+        # 三键在受理时锁定（PRD 4.3），任一 key 缺失都会让版本选择不可复算
+        if type(self.business_date) is not date:
+            raise ValueError("三键缺少 business_date 或类型非法（须为 datetime.date）")
+        for name in ("product_type", "org_level"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip() or value != value.strip():
+                raise ValueError(
+                    "三键 %s 非法：%r（须为非空字符串、无首尾空白）" % (name, value)
+                )
 
     def to_dict(self) -> dict:
         return {
