@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -26,7 +27,17 @@ __all__ = ["Evaluation", "RuleEngine"]
 
 @dataclass(frozen=True)
 class Evaluation:
-    """一条规则对一个案件的判定结果（不可变、可哈希）。"""
+    """一条规则对一个案件的判定结果（不可变）。
+
+    verdict 与 coverage 的映射（PRD 三态是固定枚举，未判定不是第四态）：
+        已判定   -> verdict = HIT / MISS
+        不适用   -> verdict = NOT_APPLICABLE
+        未判定   -> verdict = NOT_APPLICABLE + reason_code 非空
+    **下游区分「不适用」与「未判定」必须读 coverage / reason_code，不能只看 verdict。**
+
+    可哈希性 caveat：values 里保存事实原值，若事实值本身不可哈希（list/dict），
+    hash(Evaluation) 会抛 TypeError。需要入集合/做键时先确认事实值可哈希。
+    """
 
     rule_id: str
     rule_version: str
@@ -70,9 +81,14 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def _is_nan(value: Any) -> bool:
+    return isinstance(value, float) and math.isnan(value)
+
+
 def _comparable(a: Any, b: Any) -> bool:
     if _is_number(a) and _is_number(b):
-        return True
+        # NaN 与任何值比较都是 False（!= 为 True），会把无效数据判成确定结论
+        return not (_is_nan(a) or _is_nan(b))
     if isinstance(a, str) and isinstance(b, str):
         return True
     return False
@@ -143,7 +159,11 @@ class RuleEngine:
         facts: Mapping[str, Any],
         context: Optional[TripleKey] = None,
     ) -> Evaluation:
-        """判定一条规则。**永不抛异常**——任何异常都降级成未判定。
+        """判定一条规则。**坏数据永不抛异常**——一律降级成未判定。
+
+        契约边界（该抛的抛）：rule 必须是 Rule 实例，facts 必须是 Mapping
+        （None 视为空事实，走 MISSING_FACT 降级）。违反类型契约属于调用方 bug，
+        抛 TypeError——把它降级成「未判定」会掩盖编程错误（评审意见，切片 2）。
 
         context 的语义（重要）：
             * 传入 TripleKey —— 引擎会**再验一次**规则的适用范围（产品 / 机构 /
@@ -152,6 +172,12 @@ class RuleEngine:
               复核范围。此时若传入未绑定的规则，引擎不会替你把关——**范围判定
               的唯一权威是 RuleStore.bind()**（PRD 6.1 FR-RAG-04）。
         """
+        if not isinstance(rule, Rule):
+            raise TypeError("rule 必须是 Rule 实例，得到 %r" % type(rule).__name__)
+        if facts is None:
+            facts = {}
+        if not isinstance(facts, Mapping):
+            raise TypeError("facts 必须是 Mapping（None 视为空事实），得到 %r" % type(facts).__name__)
         try:
             return self._evaluate(rule, facts, context)
         except Exception as exc:                      # 兜底：引擎自身异常也不许带崩整批
@@ -223,6 +249,21 @@ class RuleEngine:
                 reason_code=UnresolvedReasonCode.MISSING_FACT,
                 fact_refs=missing,
                 values=(),
+                severity=rule.severity,
+                hit_label=None,
+            )
+
+        # 3.5) NaN 单独拦截：给出明确原因，避免「float vs float 不可比」的误导文案
+        if _is_nan(lhs_value) or _is_nan(rhs_value):
+            return Evaluation(
+                rule_id=rule.rule_id,
+                rule_version=rule.version,
+                verdict=Verdict.NOT_APPLICABLE,
+                coverage=CoverageFlag.UNRESOLVED,
+                reason="事实值为 NaN，不能参与判定：%s" % (expr.describe(),),
+                reason_code=UnresolvedReasonCode.TYPE_MISMATCH,
+                fact_refs=expr.field_names(),
+                values=tuple((n, facts[n]) for n in expr.field_names() if n in facts),
                 severity=rule.severity,
                 hit_label=None,
             )

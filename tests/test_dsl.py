@@ -51,7 +51,7 @@ class TestParseValid(unittest.TestCase):
 
     def test_解析结果不可变且可哈希(self):
         e = parse_expression("IF fact.a < 1 THEN hit('x')")
-        with self.assertRaises(Exception):
+        with self.assertRaises(AttributeError):
             e.label = "y"  # type: ignore[misc]
         self.assertEqual(len({e, e}), 1)
 
@@ -104,6 +104,31 @@ class TestParseInvalid(unittest.TestCase):
         exc = self._reject("IF fact.a < 1 THEN hit('x")
         self.assertIsNotNone(exc.position)
         self.assertIn("字符", str(exc))
+
+
+class TestParseStrictGaps(unittest.TestCase):
+    """评审补强的回归断言：严格性盲区（空 label / 全角数字）。"""
+
+    def test_空label被拒(self):
+        """label 是结论文字，空 label 会让意见层输出空结论。"""
+        with self.assertRaises(DslParseError):
+            parse_expression("IF fact.a < 1 THEN hit('')")
+
+    def test_空白label被拒(self):
+        with self.assertRaises(DslParseError):
+            parse_expression("IF fact.a < 1 THEN hit('   ')")
+
+    def test_全角数字字面量被拒(self):
+        """外部内容里的全角数字不得被静默归一成 ASCII 数字（与 rule_id 的 ASCII 闸一致）。"""
+        with self.assertRaises(DslParseError):
+            parse_expression("IF fact.a < １２３ THEN hit('x')")
+
+    def test_支持的转义正确还原(self):
+        bs = chr(92)
+        text = "IF fact.a == 'a" + bs + "'b' THEN hit('x')"
+        self.assertEqual(parse_expression(text).comparison.rhs.value, "a'b")
+        text2 = "IF fact.a == 'a" + bs + bs + "b' THEN hit('x')"
+        self.assertEqual(parse_expression(text2).comparison.rhs.value, "a" + bs + "b")
 
 
 class TestNoCodeExecution(unittest.TestCase):

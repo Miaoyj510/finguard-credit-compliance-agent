@@ -166,7 +166,7 @@ class TestReproducibility(unittest.TestCase):
 
     def test_结果不可变且可哈希(self):
         r = self.engine.evaluate(self.rule, {"monthly_revenue": 1, "declared_revenue": 2})
-        with self.assertRaises(Exception):
+        with self.assertRaises(AttributeError):
             r.verdict = Verdict.MISS     # type: ignore[misc]
         self.assertEqual(len({r}), 1)
 
@@ -223,6 +223,55 @@ class TestStoreGet(unittest.TestCase):
         store = RuleStore(seed_rules())
         with self.assertRaises(KeyError):
             store.get("R-CR-013", "9.9.9")
+
+
+class TestEngineContract(unittest.TestCase):
+    """评审补强：降级契约的边界——数据问题降级，调用方 bug 该抛就抛。"""
+
+    def setUp(self) -> None:
+        self.engine = RuleEngine()
+        self.rule = make_rule(dsl="IF fact.a < 100 THEN hit('x')")
+
+    def test_非Rule入参抛TypeError(self):
+        """「永不抛异常」针对坏数据，不针对违反类型契约的调用方 bug。"""
+        with self.assertRaises(TypeError):
+            self.engine.evaluate(None, {})
+
+    def test_facts为None按缺失降级(self):
+        """None 语义上等于「没有事实」，应走 MISSING_FACT，而不是兜底误标 DSL_PARSE_ERROR。"""
+        r = self.engine.evaluate(self.rule, None)
+        self.assertIs(r.coverage, CoverageFlag.UNRESOLVED)
+        self.assertIs(r.reason_code, UnresolvedReasonCode.MISSING_FACT)
+
+    def test_facts非Mapping抛TypeError(self):
+        with self.assertRaises(TypeError):
+            self.engine.evaluate(self.rule, 123)
+
+    def test_NaN小于比较降级为未判定(self):
+        """NaN 与任何数比较都得 False——不能把无效数据判成确定的「未命中」。"""
+        r = self.engine.evaluate(self.rule, {"a": float("nan")})
+        self.assertIs(r.coverage, CoverageFlag.UNRESOLVED)
+        self.assertIs(r.reason_code, UnresolvedReasonCode.TYPE_MISMATCH)
+
+    def test_NaN不等于比较不得判命中(self):
+        """NaN != 100 在 Python 里为 True——更危险，会把无效数据判成确定命中。"""
+        rule = make_rule(dsl="IF fact.a != 100 THEN hit('x')")
+        r = self.engine.evaluate(rule, {"a": float("nan")})
+        self.assertIs(r.coverage, CoverageFlag.UNRESOLVED)
+        self.assertIs(r.reason_code, UnresolvedReasonCode.TYPE_MISMATCH)
+
+    def test_无穷大视为合法数值(self):
+        """inf 是有意义的无界值，与 NaN 不同，允许参与判定（钉住设计取舍）。"""
+        r = self.engine.evaluate(self.rule, {"a": float("inf")})
+        self.assertIs(r.verdict, Verdict.MISS)   # inf < 100 为假
+        self.assertIs(r.coverage, CoverageFlag.JUDGED)
+
+    def test_字符串按字典序比较(self):
+        """同为字符串时允许比较（ISO 日期串等场景），钉住设计取舍。"""
+        rule = make_rule(dsl="IF fact.a < fact.b THEN hit('x')")
+        r = self.engine.evaluate(rule, {"a": "abc", "b": "abd"})
+        self.assertIs(r.verdict, Verdict.HIT)
+        self.assertIs(r.coverage, CoverageFlag.JUDGED)
 
 
 if __name__ == "__main__":

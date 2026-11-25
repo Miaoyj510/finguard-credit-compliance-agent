@@ -56,7 +56,7 @@ class DslParseError(DslError):
 _TOKEN_RE = re.compile(
     r"""
     (?P<ws>\s+)
-  | (?P<number>-?\d+(?:\.\d+)?)
+  | (?P<number>-?[0-9]+(?:\.[0-9]+)?)
   | (?P<string>'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")
   | (?P<ident>[A-Za-z_][A-Za-z0-9_]*)
   | (?P<op><=|>=|==|!=|<|>)
@@ -226,6 +226,8 @@ class _Parser:
         label_tok = self._next()
         if label_tok.kind != "string":
             raise DslParseError("hit 的参数必须是字符串", label_tok.position, self._source)
+        if not label_tok.value.strip():
+            raise DslParseError("hit 的 label 不能为空或纯空白", label_tok.position, self._source)
         close = self._next()
         if close.kind != "punct" or close.value != ")":
             raise DslParseError("期望 ')'", close.position, self._source)
