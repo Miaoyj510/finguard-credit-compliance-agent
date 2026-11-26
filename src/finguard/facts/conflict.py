@@ -13,7 +13,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from .models import Confidence, FactField, SourceChannel
+from .models import Confidence, FactField, SourceChannel, same_value
 
 __all__ = ["ConflictKind", "ConflictStatus", "ConflictItem", "ConflictQueue"]
 
@@ -42,6 +42,9 @@ class ConflictItem:
     reason: Optional[str] = None
     adjudicator: Optional[str] = None
     adjudicated_at: Optional[str] = None
+    #: 冲突涉及的全部字段。交叉核对冲突涉及两个字段，未裁决时双方都拦
+    #: （SEC-01）；双路冲突即字段自身。回填仍只作用于 field。
+    involved_fields: Tuple[str, ...] = ()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -55,6 +58,7 @@ class ConflictItem:
             "reason": self.reason,
             "adjudicator": self.adjudicator,
             "adjudicated_at": self.adjudicated_at,
+            "involved_fields": list(self.involved_fields),
         }
 
 
@@ -84,6 +88,9 @@ class ConflictQueue:
             raise KeyError("冲突项不存在：%s" % conflict_id)
         return self._items[conflict_id]
 
+    def __contains__(self, conflict_id: object) -> bool:
+        return conflict_id in self._items
+
     # ---------- 写 ----------
     def add(self, item: ConflictItem) -> ConflictItem:
         if item.conflict_id in self._items:
@@ -107,7 +114,10 @@ class ConflictQueue:
             raise ValueError("裁决理由不能为空")
         if not isinstance(adjudicator, str) or not adjudicator.strip():
             raise ValueError("裁决人不能为空")
-        if chosen not in item.candidates:
+        # 严格口径（评审意见 3）：0 不等于 False，裁决值不得借 Python 的
+        # 宽松相等混进候选。允许身份命中——人选中的就是列表里那个对象
+        # （含 NaN 候选：NaN != NaN，但同一个 NaN 对象应当可选）。
+        if not any(chosen is c or same_value(chosen, c) for c in item.candidates):
             raise ValueError(
                 "裁决值 %r 不在候选列表 %r 内" % (chosen, list(item.candidates))
             )

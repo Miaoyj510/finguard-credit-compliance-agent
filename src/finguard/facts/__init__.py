@@ -13,6 +13,7 @@ from .models import (
     FactField,
     FactSet,
     SourceChannel,
+    same_value,
     scan_conclusion_terms,
 )
 
@@ -33,5 +34,6 @@ __all__ = [
     "SourceChannel",
     "distinct_candidates",
     "merge_dual",
+    "same_value",
     "scan_conclusion_terms",
 ]

@@ -22,8 +22,23 @@ __all__ = [
     "CONCLUSION_TERMS_EN",
     "FactField",
     "FactSet",
+    "same_value",
     "scan_conclusion_terms",
 ]
+
+
+def same_value(a: Any, b: Any) -> bool:
+    """事实取值的「严格一致」判定（全事实层唯一口径）。
+
+    比 Python 的 == 更严一档：布尔与数字在 Python 里相等
+    （0 == False 为 True），但「抽取到 0」和「抽取到 False」是两回事。
+    双路合并、候选去重、裁决值 membership 三处必须共用本函数，
+    否则严格性会在其中一处泄漏（评审意见 3）。
+    NaN == NaN 为 False，故 NaN 永不判一致。
+    """
+    if isinstance(a, bool) != isinstance(b, bool):
+        return False
+    return a == b
 
 
 class Confidence(str, Enum):
@@ -57,9 +72,13 @@ CONCLUSION_TERMS: Tuple[str, ...] = (
 #: 代价：hit_rate 这类含 hit 的字段名会误报——事实层里这类字段本就罕见，
 #: 且误报是「响亮地失败」，改名即可，符合严格性取向。
 CONCLUSION_TERMS_EN: Tuple[str, ...] = (
-    "compliant", "compliance", "non-compliant", "violation", "violate",
+    "compliant", "compliance", "non-compliant", "noncompliant", "violation", "violate",
     "reject", "approve", "pass", "hit", "miss",
     "conclusion", "advice", "recommend", "suspicious", "fraud",
+    # 常见变形（评审意见 4）：approved / rejected / violations 等曾漏网。
+    # 刻意不收 approval / approver——approval_limit / approver_authority
+    # 是本域正常字段名，收了会自伤。
+    "approved", "rejected", "violations", "hits", "passed", "missed",
 )
 
 _EN_PATTERNS = {
@@ -163,6 +182,10 @@ class FactSet:
             field_name = getattr(c, "field", None)
             if field_name:
                 names.add(field_name)
+            # 交叉核对冲突涉及两个字段，未裁决时**双方**都不得进判定链
+            # （SEC-01 硬指标：低置信/冲突未裁决字段进入判定链次数 = 0）。
+            for extra in getattr(c, "involved_fields", ()) or ():
+                names.add(extra)
         return tuple(sorted(names))
 
     def blocked_fields(self) -> Tuple[str, ...]:
@@ -170,7 +193,17 @@ class FactSet:
 
     # ---------- 自检 ----------
     def conclusion_hits(self) -> List[Tuple[str, str]]:
-        return scan_conclusion_terms(self.fields)
+        """只扫**事实内容**：字段名、取值、并列候选。
+
+        不扫 locator / note / routes 等元数据（评审意见 6）：出处文件名
+        《合规管理办法》、人工裁决理由与裁决人姓名属于来源与留痕，不是
+        事实层在做判定，扫它们会把正常出处误杀（FR-FACT-01 要求登记来源）。
+        """
+        hits = scan_conclusion_terms({n: f.value for n, f in self.fields.items()})
+        for n, f in self.fields.items():
+            if f.candidates:
+                hits.extend(scan_conclusion_terms({n: f.candidates}))
+        return hits
 
     def to_dict(self) -> Dict[str, Any]:
         return {

@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-from .models import Confidence, FactField, SourceChannel
+from .models import Confidence, FactField, SourceChannel, same_value
 
 __all__ = ["RouteResult", "merge_dual", "distinct_candidates"]
 
@@ -44,25 +44,21 @@ class RouteResult:
 
 
 def _same_value(a: Any, b: Any) -> bool:
-    """两路取值是否「一致」。
-
-    比 Python 的 == 更严一档：布尔与数字在 Python 里相等
-    （0 == False 为 True），但「抽取到 0」和「抽取到 False」是两回事，
-    必须判为不一致，交人工裁决。
-    """
-    a_bool = isinstance(a, bool)
-    b_bool = isinstance(b, bool)
-    if a_bool != b_bool:
-        return False
-    return a == b
+    """两路取值是否「一致」。口径统一在 models.same_value（评审意见 3）。"""
+    return same_value(a, b)
 
 
 def distinct_candidates(values) -> Tuple[Any, ...]:
-    """去重保序的候选值列表。"""
+    """去重保序的候选值列表。
+
+    用严格口径去重：False 与 0 是**两个**候选，必须并列保留
+    （FR-FACT-06）；同一 NaN 对象按身份去重，避免并列两个一样的 NaN。
+    """
     out = []
     for v in values:
-        if v not in out:
-            out.append(v)
+        if any(v is w or same_value(v, w) for w in out):
+            continue
+        out.append(v)
     return tuple(out)
 
 

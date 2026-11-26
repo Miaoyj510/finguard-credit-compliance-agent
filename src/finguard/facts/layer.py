@@ -64,35 +64,67 @@ class FactLayer:
                     kind=ConflictKind.LOW_CONFIDENCE,
                     candidates=f.candidates,
                     detail=f.note,
+                    involved_fields=(name,),
                 )
             )
 
+        self._enqueue_cross_conflicts(queue, checks, decision)
+
+        factset = FactSet(fields=merged, pending_conflicts=queue.pending(), checks=checks)
+        self._enforce_conclusion_gate(factset)
+        return factset, queue
+
+    @staticmethod
+    def _enqueue_cross_conflicts(
+        queue: ConflictQueue,
+        checks: Tuple[CrossCheckResult, ...],
+        decision: Mapping[str, Any],
+    ) -> None:
+        """把不通过的核对入队。
+
+        同一核对、同一组取值已有冲突项（无论待裁决还是已裁决）时不重复入队：
+        人已对这组取值裁过决，重跑核对如实记录结果，但不再重复追问。
+        取值变了（裁决改写了字段）则视为新冲突，编号加 #N 后缀。
+        """
         for check in checks:
             if check.passed:
                 continue
             fields = check.involved_fields
             values = tuple(decision[f] for f in fields if f in decision)
+            base = "%s:%s" % (ConflictKind.CROSS_CHECK.value, check.check_id)
+            same_pair = [
+                i for i in queue.all()
+                if i.kind is ConflictKind.CROSS_CHECK
+                and i.conflict_id.split("#")[0] == base
+                and set(i.candidates) == set(values)
+            ]
+            if same_pair:
+                continue
+            conflict_id = base
+            n = 2
+            while conflict_id in queue:
+                conflict_id = "%s#%d" % (base, n)
+                n += 1
             queue.add(
                 ConflictItem(
-                    conflict_id="%s:%s" % (ConflictKind.CROSS_CHECK.value, check.check_id),
+                    conflict_id=conflict_id,
                     field=fields[0] if fields else check.check_id,
                     kind=ConflictKind.CROSS_CHECK,
                     candidates=values,
                     detail=check.detail,
+                    involved_fields=tuple(fields),
                 )
             )
 
-        factset = FactSet(fields=merged, pending_conflicts=queue.pending(), checks=checks)
-
-        if self.strict:
-            hits = factset.conclusion_hits()
-            if hits:
-                raise ConclusionTermError(
-                    "事实层输出包含结论性词汇（PRD FR-FACT-07）：%s"
-                    % "、".join("%s→%s" % (name, term) for name, term in hits)
-                )
-
-        return factset, queue
+    def _enforce_conclusion_gate(self, factset: FactSet) -> None:
+        if not self.strict:
+            return
+        hits = factset.conclusion_hits()
+        if hits:
+            raise ConclusionTermError(
+                "事实层输出包含结论性词汇（PRD FR-FACT-07）：%s"
+                % "、".join("%s→%s" % (name, term) for name, term in hits)
+            )
 
     def adjudicate(
         self,
@@ -104,11 +136,24 @@ class FactLayer:
         adjudicator: str,
         adjudicated_at: Optional[str] = None,
     ) -> FactSet:
-        """人工裁决一条冲突，返回新的事实集。"""
+        """人工裁决一条冲突，返回新的事实集。
+
+        PRD F-06「裁决入库后重跑判定」：裁决把字段放行后，新的高置信
+        事实集必须**重新过交叉核对**——否则裁决放行的值与流水的勾稽
+        冲突永远漏检（评审意见 1）。核对结果刷新，新冲突入队并拦截。
+        产出同样过结论词闸门（评审意见 5：闸门覆盖事实层全部输出）。
+        """
         queue.resolve(conflict_id, chosen, reason, adjudicator, adjudicated_at)
         fields = queue.apply_resolutions(factset.fields)
-        return FactSet(
+        decision = {
+            name: f.value for name, f in fields.items() if f.confidence is Confidence.HIGH
+        }
+        checks = self.checker.run(decision)
+        self._enqueue_cross_conflicts(queue, checks, decision)
+        result = FactSet(
             fields=fields,
             pending_conflicts=queue.pending(),
-            checks=factset.checks,
+            checks=checks,
         )
+        self._enforce_conclusion_gate(result)
+        return result

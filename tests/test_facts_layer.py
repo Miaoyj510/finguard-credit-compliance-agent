@@ -150,3 +150,91 @@ class TestWithEngineIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---- 评审回归（切片 3 评审新增） ----
+from finguard.facts.conflict import ConflictItem, ConflictKind, ConflictQueue
+from finguard.facts.models import FactField, FactSet
+
+
+class TestConflictBlocking(unittest.TestCase):
+    """SEC-01：冲突未裁决字段（含核对涉及的另一方）不得进判定链。"""
+
+    def test_CC冲突未裁决双方字段都被拦(self):
+        a = dict(GOOD_A); a["flow_6m_total"] = 500000
+        factset, queue = FactLayer().build(route("vote", a), route("rule_check", a))
+        self.assertEqual(len(queue.pending()), 1)
+        dr = factset.decision_ready()
+        self.assertNotIn("declared_revenue", dr)
+        self.assertNotIn("flow_6m_total", dr)
+        self.assertIn("flow_6m_total", factset.blocked_fields())
+
+
+class TestAdjudicationRecheck(unittest.TestCase):
+    """PRD F-06：裁决入库后重跑判定——新放行字段必须重新过交叉核对。"""
+
+    def test_裁决后重跑核对_新冲突入队并拦截(self):
+        a = dict(GOOD_A); a["flow_6m_total"] = 100000
+        b = dict(GOOD_A); b["flow_6m_total"] = 100000; b["declared_revenue"] = 615000
+        layer = FactLayer()
+        factset, queue = layer.build(route("vote", a), route("rule_check", b))
+        self.assertNotIn("CC-01", [c.check_id for c in factset.checks])
+        factset2 = layer.adjudicate(
+            factset, queue, "low_confidence:declared_revenue", 1000000, "以对账单为准", "张合规")
+        cc = [c for c in factset2.checks if c.check_id == "CC-01"]
+        self.assertEqual(len(cc), 1)
+        self.assertFalse(cc[0].passed)
+        self.assertEqual(len(queue.pending()), 1)
+        self.assertEqual(queue.pending()[0].kind.value, "cross_check")
+        dr = factset2.decision_ready()
+        self.assertNotIn("declared_revenue", dr)
+        self.assertNotIn("flow_6m_total", dr)
+
+    def test_裁决后核对刷新_通过项被记录(self):
+        a = dict(GOOD_A); b = dict(GOOD_A); b["declared_revenue"] = 615000
+        layer = FactLayer()
+        factset, queue = layer.build(route("vote", a), route("rule_check", b))
+        factset2 = layer.adjudicate(
+            factset, queue, "low_confidence:declared_revenue", 1000000, "以对账单为准", "张合规")
+        cc = [c for c in factset2.checks if c.check_id == "CC-01"]
+        self.assertEqual(len(cc), 1)
+        self.assertTrue(cc[0].passed)
+        self.assertIn("declared_revenue", factset2.decision_ready())
+
+    def test_已裁决同值核对不重复入队(self):
+        a = dict(GOOD_A); a["flow_6m_total"] = 500000
+        layer = FactLayer()
+        factset, queue = layer.build(route("vote", a), route("rule_check", a))
+        factset2 = layer.adjudicate(
+            factset, queue, "cross_check:CC-01", 1000000, "申报属实，流水口径不同", "张合规")
+        self.assertEqual(len(queue.pending()), 0)
+        cc = [c for c in factset2.checks if c.check_id == "CC-01"]
+        self.assertFalse(cc[0].passed)  # 核对结果如实保留，人工裁决已覆盖
+
+
+class TestConclusionGateScope(unittest.TestCase):
+    """FR-FACT-07 闸门：扫事实内容（字段名/取值/候选），不误伤出处元数据。"""
+
+    def test_locator制度名不误报(self):
+        values = {"industry": "零售"}
+        ra = RouteResult(route="vote", channel=SourceChannel.OCR, values=dict(values),
+                         locators={"industry": "《合规管理办法》第3页"})
+        factset, _ = FactLayer().build(ra, route("rule_check", values))
+        self.assertEqual(factset.conclusion_hits(), [])
+        self.assertEqual(factset.fields["industry"].locator, "《合规管理办法》第3页")
+
+    def test_英文结论词变形被拦(self):
+        for w in ("approved", "rejected", "violations", "APPROVED"):
+            with self.subTest(word=w):
+                with self.assertRaises(ConclusionTermError):
+                    FactLayer().build(route("vote", {"s": w}), route("rule_check", {"s": w}))
+
+    def test_裁决输出过结论词闸门(self):
+        fields = {"s": FactField(name="s", value="正常", confidence=Confidence.LOW,
+                                 candidates=("违规", "正常"))}
+        factset = FactSet(fields=fields)
+        queue = ConflictQueue([ConflictItem(
+            conflict_id="low_confidence:s", field="s", kind=ConflictKind.LOW_CONFIDENCE,
+            candidates=("违规", "正常"), detail="两路取值不一致，须人工裁决")])
+        with self.assertRaises(ConclusionTermError):
+            FactLayer().adjudicate(factset, queue, "low_confidence:s", "违规", "理由", "张合规")

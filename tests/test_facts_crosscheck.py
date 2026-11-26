@@ -29,9 +29,13 @@ class TestRevenueVsFlow(unittest.TestCase):
         self.assertIsNone(self.checker.check_revenue_vs_flow(
             {"declared_revenue": True, "flow_6m_total": 100}))
 
-    def test_申报营收为零时跳过(self):
-        self.assertIsNone(self.checker.check_revenue_vs_flow(
-            {"declared_revenue": 0, "flow_6m_total": 100}))
+    def test_申报营收为零不再静默跳过(self):
+        """评审意见 7：零申报 + 非零流水是高危组合，必须产出冲突（FR-FACT-04）。"""
+        r = self.checker.check_revenue_vs_flow(
+            {"declared_revenue": 0, "flow_6m_total": 100})
+        self.assertIsNotNone(r)
+        self.assertFalse(r.passed)
+        self.assertIsNone(r.deviation)
 
 
 class TestApprovalAuthority(unittest.TestCase):
@@ -74,3 +78,30 @@ class TestCheckerRun(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestZeroAndNaN(unittest.TestCase):
+    """评审回归：零营收不得静默跳过；NaN 不得产出确定结论（切片 2 先例）。"""
+
+    def test_零营收非零流水产出冲突(self):
+        r = CrossChecker().check_revenue_vs_flow(
+            {"declared_revenue": 0, "flow_6m_total": 1000000})
+        self.assertIsNotNone(r)
+        self.assertFalse(r.passed)
+        self.assertIsNone(r.deviation)
+
+    def test_双零视为一致(self):
+        r = CrossChecker().check_revenue_vs_flow(
+            {"declared_revenue": 0, "flow_6m_total": 0})
+        self.assertIsNotNone(r)
+        self.assertTrue(r.passed)
+
+    def test_NaN不产出确定结论(self):
+        import math
+        nan = float("nan")
+        self.assertIsNone(CrossChecker().check_revenue_vs_flow(
+            {"declared_revenue": nan, "flow_6m_total": 100}))
+        self.assertIsNone(CrossChecker().check_revenue_vs_flow(
+            {"declared_revenue": 100, "flow_6m_total": nan}))
+        self.assertIsNone(CrossChecker().check_approval_authority(
+            {"approval_limit": nan, "approver_authority": 100}))

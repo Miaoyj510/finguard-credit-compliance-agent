@@ -77,3 +77,19 @@ class TestMergeDual(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStrictCandidateEquality(unittest.TestCase):
+    """评审回归：布尔/数字等价不得塌缩候选值（FR-FACT-06 并列两取值）。"""
+
+    def test_布尔与数字不一致候选保留两值(self):
+        merged = merge_dual(route_a({"x": False}), route_b({"x": 0}))
+        self.assertIs(merged["x"].confidence, Confidence.LOW)
+        self.assertEqual(merged["x"].candidates, (False, 0))
+
+    def test_真与1候选保留两值(self):
+        merged = merge_dual(route_a({"x": True}), route_b({"x": 1}))
+        self.assertEqual(merged["x"].candidates, (True, 1))
+
+    def test_候选去重布尔数字不塌缩(self):
+        self.assertEqual(distinct_candidates([False, 0, True, 1]), (False, 0, True, 1))

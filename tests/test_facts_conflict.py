@@ -101,3 +101,17 @@ class TestQueueState(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStrictResolveMembership(unittest.TestCase):
+    """评审回归：裁决值必须严格来自候选（0 不等于 False）。"""
+
+    def test_裁决值布尔数字不等价被拒(self):
+        q = ConflictQueue([make_item("x", (False,))])
+        with self.assertRaises(ValueError):
+            q.resolve("low_confidence:x", 0, "理由", "张合规")
+
+    def test_裁决值严格命中候选仍可裁决(self):
+        q = ConflictQueue([make_item("x", (False, 0))])
+        item = q.resolve("low_confidence:x", 0, "理由", "张合规")
+        self.assertEqual(item.chosen, 0)

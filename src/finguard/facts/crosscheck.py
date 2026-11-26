@@ -10,6 +10,7 @@ MISSING_FACT 降级处理，不该在这里造一个「冲突」。
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional, Tuple
 
@@ -28,6 +29,11 @@ FIELD_FLOW_6M_TOTAL = "flow_6m_total"             # 近 6 个月账户流水合�
 FIELD_APPROVAL_LIMIT = "approval_limit"            # 该笔业务的授权额度
 FIELD_APPROVER_AUTHORITY = "approver_authority"    # 实际审批人的授权上限
 FIELD_LOAN_AMOUNT = "loan_amount"                  # 申请金额（仅作上下文展示）
+
+
+def _numeric(v: Any) -> bool:
+    """可参与核对的数值：int/float 且非布尔（布尔不是金额）。"""
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 @dataclass(frozen=True)
@@ -67,12 +73,32 @@ class CrossChecker:
     def check_revenue_vs_flow(self, facts: Mapping[str, Any]) -> Optional[CrossCheckResult]:
         declared = facts.get(FIELD_DECLARED_REVENUE)
         flow = facts.get(FIELD_FLOW_6M_TOTAL)
-        if not isinstance(declared, (int, float)) or isinstance(declared, bool):
+        if not _numeric(declared) or not _numeric(flow):
             return None
-        if not isinstance(flow, (int, float)) or isinstance(flow, bool):
+        # NaN 不产出确定结论（切片 2 评审先例：类型不可比 ≠ 判 False）。
+        # 层内管线里 NaN 必为低置信到不了这里，本守卫保护公开 API 直调。
+        if math.isnan(declared) or math.isnan(flow):
             return None
         if declared == 0:
-            return None
+            # 零申报 + 非零流水是高危组合，不得静默跳过（评审意见 7，
+            # FR-FACT-04）。偏离无法计算，deviation 置 None，按冲突交人工。
+            if flow == 0:
+                return CrossCheckResult(
+                    check_id="CC-01",
+                    name="申报营收 vs 账户流水合计",
+                    passed=True,
+                    detail="申报营收与流水合计均为零",
+                    involved_fields=(FIELD_DECLARED_REVENUE, FIELD_FLOW_6M_TOTAL),
+                    deviation=0.0,
+                )
+            return CrossCheckResult(
+                check_id="CC-01",
+                name="申报营收 vs 账户流水合计",
+                passed=False,
+                detail="申报营收为零但流水合计 %s，偏离无法计算，按冲突处理" % (flow,),
+                involved_fields=(FIELD_DECLARED_REVENUE, FIELD_FLOW_6M_TOTAL),
+                deviation=None,
+            )
         deviation = (declared - flow) / declared
         passed = abs(deviation) <= self.deviation_threshold
         return CrossCheckResult(
@@ -91,14 +117,14 @@ class CrossChecker:
     def check_approval_authority(self, facts: Mapping[str, Any]) -> Optional[CrossCheckResult]:
         limit = facts.get(FIELD_APPROVAL_LIMIT)
         authority = facts.get(FIELD_APPROVER_AUTHORITY)
-        if not isinstance(limit, (int, float)) or isinstance(limit, bool):
+        if not _numeric(limit) or not _numeric(authority):
             return None
-        if not isinstance(authority, (int, float)) or isinstance(authority, bool):
+        if math.isnan(limit) or math.isnan(authority):
             return None
         passed = authority >= limit
         amount = facts.get(FIELD_LOAN_AMOUNT)
         ctx = ""
-        if isinstance(amount, (int, float)) and not isinstance(amount, bool):
+        if _numeric(amount):
             ctx = "；申请金额 %s" % (amount,)
         return CrossCheckResult(
             check_id="CC-02",
