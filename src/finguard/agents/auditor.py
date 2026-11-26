@@ -1,0 +1,347 @@
+"""审查 Agent 与引用闸门（PRD 6.3 FR-AUDIT-01 ~ 08、8.1 AgentSpec 禁止行为）。
+
+这一层把「判定结果 + 事实」变成**可签核的结构化审查意见**，并且守住三条线：
+
+1. **引用三件套是硬闸门**（FR-AUDIT-07 / NFR-01 / NFR-03）：
+   规则编号 + 规则版本 + 事实引用，缺任一项（或与绑定版本对不上），
+   草稿**不进输出通道**，只进拦截清单。
+2. **严重度只能来自规则库**（FR-AUDIT-03 / FB-04）：
+   模型自拟的严重度一律替换回 rule.severity，并留痕。
+3. **禁止行为可检出**（FR-AUDIT-04 / AgentSpec FB-01 ~ FB-05）：
+   处罚决定、责任认定、审批结论、对客结论——以及引用未绑定规则、
+   引用低置信事实、自拟严重度、执行文档中的指令。
+
+模型接入：真实大模型调用留到切片 9（PRD 7.6.7 选型轴①），本切片用**桩件**
+生成理由，契约不变。
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+
+from ..domain.enums import CoverageFlag, Severity, UnresolvedReasonCode, Verdict
+from ..domain.opinion import (
+    BlockedOpinion,
+    CoverageSummary,
+    OpinionDraft,
+    OpinionOrigin,
+    ReviewOpinion,
+    SeverityCorrection,
+    UnresolvedEntry,
+)
+from ..domain.rule import Rule
+from ..rules.engine import Evaluation
+
+__all__ = [
+    "CitationGate",
+    "ForbiddenBehaviorDetector",
+    "ForbiddenHit",
+    "RationaleWriter",
+    "TemplateRationaleWriter",
+    "Auditor",
+    "OpinionBuildResult",
+]
+
+
+# ---------------------------------------------------------------- 闸门
+class CitationGate:
+    """引用三件套闸门。
+
+    必查项：
+        rule_id     —— 必须存在，且与绑定判定的 rule_id 一致
+        rule_version—— 必须存在，且与绑定判定的 rule_version 一致
+        fact_refs   —— 必须**覆盖**判定实际用到的全部事实字段
+    """
+
+    REQUIRED = ("rule_id", "rule_version", "fact_refs")
+
+    def check(self, draft: OpinionDraft, evaluation: Evaluation) -> Tuple[str, ...]:
+        missing: List[str] = []
+        if not draft.rule_id:
+            missing.append("rule_id")
+        elif draft.rule_id != evaluation.rule_id:
+            missing.append("rule_id")
+        if not draft.rule_version:
+            missing.append("rule_version")
+        elif draft.rule_version != evaluation.rule_version:
+            missing.append("rule_version")
+        need = set(evaluation.fact_refs)
+        if need and not need.issubset(set(draft.fact_refs)):
+            missing.append("fact_refs")
+        return tuple(missing)
+
+
+# ---------------------------------------------------------------- 禁止行为
+@dataclass(frozen=True)
+class ForbiddenHit:
+    """一条禁止行为命中记录。"""
+
+    code: str        # FB-01 ~ FB-05
+    detail: str
+    matched: Tuple[str, ...] = ()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"code": self.code, "detail": self.detail, "matched": list(self.matched)}
+
+
+#: FB-01：处罚决定 / 责任认定 / 审批结论 / 对客结论
+FORBIDDEN_CONCLUSION_TERMS: Tuple[str, ...] = (
+    "处罚", "罚款", "罚单", "扣罚", "追责", "问责", "责任归属",
+    "认定违规", "存在违规", "构成违规", "合规通过", "不合规",
+    "审批通过", "不予审批", "同意放款", "同意放贷", "不予放款",
+    "建议客户", "应告知客户", "告知客户", "结论为", "最终结论",
+    "放行", "不予放行", "拒绝放款", "违规",
+)
+
+#: FB-05：文档里夹带的祈使式指令（防注入）
+INSTRUCTION_PATTERNS: Tuple[str, ...] = (
+    "忽略上述", "忽略前面", "忽略以上", "跳过复核", "跳过审核",
+    "无需复核", "不必复核", "无需审核", "直接判定为", "直接输出",
+    "不必检查", "无需检查", "请不要输出", "不要检查", "直接通过",
+)
+
+
+class ForbiddenBehaviorDetector:
+    """检测 AgentSpec 里 FB-01 ~ FB-05 的违反。"""
+
+    def detect(
+        self,
+        draft: OpinionDraft,
+        evaluation: Evaluation,
+        *,
+        bound_rule_keys: Tuple[str, ...],
+        decidable_fact_names: Tuple[str, ...],
+        rule: Optional[Rule],
+    ) -> Tuple[ForbiddenHit, ...]:
+        hits: List[ForbiddenHit] = []
+        text = draft.rationale or ""
+
+        # FB-01：结论性表述
+        matched = tuple(t for t in FORBIDDEN_CONCLUSION_TERMS if t in text)
+        if matched:
+            hits.append(ForbiddenHit("FB-01", "意见包含结论性表述（处罚 / 责任 / 审批 / 对客）", matched))
+
+        # FB-02：引用了未绑定的规则版本
+        key = "%s@%s" % (draft.rule_id, draft.rule_version)
+        if key not in bound_rule_keys:
+            hits.append(ForbiddenHit("FB-02", "引用了未绑定的规则版本：%s" % key, (key,)))
+
+        # FB-03：引用了低置信或未裁决的事实
+        bad_refs = tuple(r for r in draft.fact_refs if r not in decidable_fact_names)
+        if bad_refs:
+            hits.append(ForbiddenHit("FB-03", "引用了不可用于判定的低置信 / 未裁决事实", bad_refs))
+
+        # FB-05：执行了文档中夹带的指令
+        instr = tuple(p for p in INSTRUCTION_PATTERNS if p in text)
+        if instr:
+            hits.append(ForbiddenHit("FB-05", "疑似执行了材料中夹带的指令", instr))
+
+        # FB-04：自拟严重度 —— 特殊处理：不是拦截，而是**替换回规则库值**（见 Auditor）
+        return tuple(hits)
+
+
+# ---------------------------------------------------------------- 理由生成（桩件）
+class RationaleWriter:
+    """理由生成器接口。真实模型实现放在切片 9（选型轴①）。"""
+
+    def __call__(
+        self, rule: Rule, evaluation: Evaluation, facts: Mapping[str, Any]
+    ) -> OpinionDraft:                                   # pragma: no cover - 接口
+        raise NotImplementedError
+
+
+class TemplateRationaleWriter(RationaleWriter):
+    """确定性模板理由生成器（桩件）。
+
+    确定性 = 同一输入必得同一理由，符合「结论可复算」要求。
+    """
+
+    def __call__(
+        self, rule: Rule, evaluation: Evaluation, facts: Mapping[str, Any]
+    ) -> OpinionDraft:
+        parts = []
+        for ref in evaluation.fact_refs:
+            parts.append("%s=%s" % (ref, facts.get(ref)))
+        if parts:
+            rationale = "触发依据：%s；相关事实：%s" % (rule.source_ref, "，".join(parts))
+        else:
+            rationale = "触发依据：%s" % (rule.source_ref,)
+        return OpinionDraft(
+            rule_id=evaluation.rule_id,
+            rule_version=evaluation.rule_version,
+            severity=evaluation.severity,
+            fact_refs=tuple(evaluation.fact_refs),
+            rationale=rationale,
+            quotes=(),
+            origin=OpinionOrigin.RULE_ENGINE,
+        )
+
+
+# ---------------------------------------------------------------- 编排
+@dataclass(frozen=True)
+class OpinionBuildResult:
+    """一次意见生成的结果。"""
+
+    opinions: Tuple[ReviewOpinion, ...] = ()
+    blocked: Tuple[BlockedOpinion, ...] = ()
+    corrections: Tuple[SeverityCorrection, ...] = ()
+    coverage: CoverageSummary = CoverageSummary()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "opinions": [o.to_dict() for o in self.opinions],
+            "blocked": [b.to_dict() for b in self.blocked],
+            "corrections": [c.to_dict() for c in self.corrections],
+            "coverage": self.coverage.to_dict(),
+        }
+
+
+class Auditor:
+    """审查 Agent。
+
+    职责边界（FR-AUDIT-04）：把事实映射到规则并组织成结构化意见；
+    **不做**处罚决定、责任认定、审批结论、对客结论。
+    """
+
+    def __init__(
+        self,
+        writer: Optional[RationaleWriter] = None,
+        gate: Optional[CitationGate] = None,
+        detector: Optional[ForbiddenBehaviorDetector] = None,
+    ) -> None:
+        self.writer = writer or TemplateRationaleWriter()
+        self.gate = gate or CitationGate()
+        self.detector = detector or ForbiddenBehaviorDetector()
+
+    # ----------------------------------------------------------------
+    def build(
+        self,
+        evaluations: Sequence[Evaluation],
+        factset: Any,
+        rules: Mapping[str, Rule],
+        quotes: Optional[Mapping[str, Tuple[str, ...]]] = None,
+    ) -> OpinionBuildResult:
+        """把判定结果转成结构化意见。
+
+        evaluations : 判定结果序列（切片 2 的 Evaluation）
+        factset     : 事实集（切片 3 的 FactSet）——决定哪些事实可被引用
+        rules       : {"rule_id@version": Rule}，用于取权威严重度与出处
+        quotes      : {"rule_id@version": ("原文片段", ...)}，可选
+        """
+        quotes = quotes or {}
+        ready = set(factset.decision_ready().keys())
+        bound_keys = tuple(sorted(rules.keys()))
+
+        opinions: List[ReviewOpinion] = []
+        blocked: List[BlockedOpinion] = []
+        corrections: List[SeverityCorrection] = []
+        unresolved: List[UnresolvedEntry] = []
+        judged = 0
+        not_applicable = 0
+        unresolved_count = 0
+
+        for evaluation in evaluations:
+            key = "%s@%s" % (evaluation.rule_id, evaluation.rule_version)
+            rule = rules.get(key)
+
+            # --- 覆盖度分类：每条规则有且仅归入一类 ---
+            if evaluation.coverage is CoverageFlag.NOT_APPLICABLE:
+                not_applicable += 1
+                continue
+            if evaluation.coverage is CoverageFlag.UNRESOLVED:
+                unresolved_count += 1
+                unresolved.append(
+                    UnresolvedEntry(
+                        rule_id=evaluation.rule_id,
+                        rule_version=evaluation.rule_version,
+                        reason_code=evaluation.reason_code or UnresolvedReasonCode.ENGINE_ERROR,
+                        detail=evaluation.reason,
+                    )
+                )
+                continue
+
+            judged += 1
+
+            # --- 生成草稿 ---
+            facts = factset.decision_ready()
+            draft = self.writer(rule, evaluation, facts) if rule is not None else OpinionDraft(
+                rule_id=evaluation.rule_id,
+                rule_version=evaluation.rule_version,
+                severity=evaluation.severity,
+                fact_refs=tuple(evaluation.fact_refs),
+                rationale="",
+            )
+
+            # --- 引用三件套闸门（FR-AUDIT-07）---
+            missing = self.gate.check(draft, evaluation)
+            if missing:
+                blocked.append(
+                    BlockedOpinion(
+                        rule_id=draft.rule_id,
+                        rule_version=draft.rule_version,
+                        reason="引用三件套不完整",
+                        missing=missing,
+                        detail="缺 %s，意见不进入输出通道" % ("、".join(missing),),
+                    )
+                )
+                continue
+
+            # --- 禁止行为检测 ---
+            hits = self.detector.detect(
+                draft, evaluation,
+                bound_rule_keys=bound_keys,
+                decidable_fact_names=tuple(sorted(ready)),
+                rule=rule,
+            )
+            if hits:
+                blocked.append(
+                    BlockedOpinion(
+                        rule_id=draft.rule_id,
+                        rule_version=draft.rule_version,
+                        reason="命中禁止行为",
+                        forbidden=tuple(h.code for h in hits),
+                        detail="；".join(h.detail for h in hits),
+                    )
+                )
+                continue
+
+            # --- 严重度一律取自规则库（FR-AUDIT-03 / FB-04）---
+            severity = rule.severity if rule is not None else evaluation.severity
+            if draft.severity != severity:
+                corrections.append(
+                    SeverityCorrection(
+                        rule_id=draft.rule_id,
+                        rule_version=draft.rule_version,
+                        proposed=draft.severity,
+                        applied=severity,
+                    )
+                )
+
+            opinions.append(
+                ReviewOpinion(
+                    opinion_id="OP-%s-%s" % (draft.rule_id, draft.rule_version),
+                    rule_id=draft.rule_id,
+                    rule_version=draft.rule_version,
+                    severity=severity,
+                    fact_refs=tuple(draft.fact_refs),
+                    rationale=draft.rationale,
+                    coverage=CoverageFlag.JUDGED,
+                    quotes=tuple(quotes.get(key, draft.quotes)),
+                    unresolved_reason_code=None,
+                    origin=draft.origin,
+                )
+            )
+
+        coverage = CoverageSummary(
+            judged=judged,
+            not_applicable=not_applicable,
+            unresolved=unresolved_count,
+            total=len(evaluations),
+            unresolved_entries=tuple(unresolved),
+        )
+        return OpinionBuildResult(
+            opinions=tuple(opinions),
+            blocked=tuple(blocked),
+            corrections=tuple(corrections),
+            coverage=coverage,
+        )

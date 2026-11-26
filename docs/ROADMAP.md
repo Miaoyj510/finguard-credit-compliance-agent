@@ -14,7 +14,7 @@
 | **1** | 规则模型与三键版本绑定 | `domain/rule.py`、`domain/case.py`、`domain/enums.py`、`rules/registry.py`、`rules/seeds.py` | ☐ 规则缺必填字段即拒绝入库 ☐ 三键唯一命中取到唯一版本 ☐ 历史时点取到历史版本 ☐ 生效区间左闭右开 ☐ 产品/机构不适用 → 须人工判定 ☐ 版本区间重叠 → 须人工判定并列出候选 ☐ **绝不按最新版硬判** ☐ 绑定结果可复算 | 5.2 / 5.3、FR-RAG-03/04/05 | `rules` |
 | **2** ✅ | DSL 判定引擎 | `rules/dsl.py`、`rules/engine.py` | ☑ if-then 表达式可解析 ☑ 返回命中/不命中/不适用三态 ☑ 事实缺失 → 未判定 ☑ 判定可复算（同输入同结果） ☑ 严重度取自规则库 | 5.4、FR-RAG-01、FR-AUDIT-03 | `dsl` |
 | **3** ✅ | 事实层 | `facts/models.py`、`facts/extract.py`、`facts/crosscheck.py`、`facts/conflict.py`、`facts/layer.py` | ☑ 双路抽取一致 → 高置信 ☑ 不一致 → 低置信且**拦截在判定链外** ☑ 流水 vs 营收核对 ☑ 额度 vs 审批人核对 ☑ 冲突项并列两取值 ☑ 事实层输出无结论词 | 8.2、FR-FACT-01~07 | `facts` |
-| **4** | 审查意见与引用闸门 | `agents/auditor.py`、`domain/opinion.py` | ☐ 意见必带引用三件套 ☐ 缺任一项被拦截 ☐ 覆盖度三类计数自洽 ☐ 未判定必带原因码 ☐ 禁止行为 FB-01~FB-05 可检出 ☐ 严重度不可自拟 | 8.3、FR-AUDIT-01~08、NFR-01/03 | `review` |
+| **4** ✅ | 审查意见与引用闸门 | `domain/opinion.py`、`agents/auditor.py` | ☑ 意见必带引用三件套 ☑ 缺任一项被拦截 ☑ 覆盖度三类计数自洽 ☑ 未判定必带原因码 ☑ 禁止行为 FB-01~FB-05 可检出 ☑ 严重度不可自拟 | 8.3、FR-AUDIT-01~08、NFR-01/03 | `review` |
 | **5** | Harness 编排与三处人审闸门 | `agents/harness/`、`domain/case_state.py` | ☐ 17 状态可达且无绕行边 ☐ Handoff 缺字段即中断 ☐ 三处闸门不可绕过、不可代签 ☐ 超时只升级不放行 ☐ 闸门零绕行 | 8.4 / 8.5 / 8.7、FR-GATE-01~06 | `harness` |
 | **6** | 事件日志、六层卷宗与回放 | `storage/event_log.py`、`storage/dossier.py`、`agents/replay.py` | ☐ 事件日志只追加、哈希链可校验 ☐ 六层齐全性两档校验 ☐ 同案同起点重放结论一致 ☐ 缺任一层判为不完整 | 8.9 / 8.10、FR-GATE-05 | `replay` |
 | **7** | 贷后循环与核查 | `agents/post_monitor.py`、`agents/verifier.py` | ☐ 常驻循环与主流程解耦 ☐ 预警带触发规则版本与证据快照 ☐ 核查初核 ☐ GATE-C 处置四档 ☐ 提前量可测 | 8.4、FR-POST-01~07 | `post` |
