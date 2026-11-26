@@ -13,6 +13,10 @@
     拼成 Basic 认证头，用 http.extraHeader 预置——令牌只存在于本进程的
     环境变量里，不落盘、不进命令行、不进 shell 历史。
 
+    代理说明：git 的 libcurl 不读 Windows 系统代理，若本机走代理（如 127.0.0.1:7897），
+    需先 `git config --global http.proxy http://127.0.0.1:7897`（https.proxy 同值），
+    否则推送会以 "Recv failure: Connection was reset" 失败。本脚本沿用 git 自身的代理配置。
+
     安全说明：令牌放在进程环境变量中，同用户的其他进程理论上可读。
     这是 gh 自身 OAuth 令牌的暴露面，换来的是「不落盘、不进命令行」。
     令牌可用 `gh auth logout` 随时吊销。
