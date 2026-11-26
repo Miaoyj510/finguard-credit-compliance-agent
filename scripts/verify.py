@@ -74,7 +74,7 @@ SUITES: Dict[str, Dict] = {
     "review": {
         "slice": 4,
         "desc": "审查意见：引用三件套、覆盖度、禁止行为",
-        "modules": [],
+        "modules": ["tests.test_opinion", "tests.test_auditor"],
     },
     "harness": {
         "slice": 5,

@@ -87,7 +87,7 @@ python scripts/verify.py -v                   # 打印失败详情
 | 1 | 规则模型与三键版本绑定 | ✅ 已完成并通过评审（49 项断言全绿） |
 | 2 | DSL 判定引擎 | ✅ 已完成并通过评审（58 项断言全绿，合计 107 项） |
 | 3 | 事实层 | ✅ 已实现，待评审（44 项断言全绿，合计 151 项） |
-| 4 | 审查意见与引用闸门 | ⬜ 待实现 |
+| 4 | 审查意见与引用闸门 | ✅ 已实现，待评审（35 项断言全绿，合计 186 项） |
 | 5 | Harness 编排与三处人审闸门 | ⬜ 待实现 |
 | 6 | 事件日志、六层卷宗与回放 | ⬜ 待实现 |
 | 7 | 贷后循环与核查 | ⬜ 待实现 |
@@ -133,5 +133,13 @@ python scripts/verify.py --slice 1     # 先复现实现方的结果（预期 49
 ## 10. 已知环境事项
 
 - 沙箱内的命令执行通道在 2026-11-25 出现过 `helper_unknown_error: setup refresh had errors`，**授权通道（require_escalated）正常**。若沙箱通道恢复，普通命令优先用普通通道。
+- **本机需要走代理才能访问 GitHub**（系统代理 `127.0.0.1:7897`）。git 的 libcurl **不读 Windows 系统代理**，必须单独配，否则推送会以 `Recv failure: Connection was reset` 失败：
+
+  ```bash
+  git config --global http.proxy  http://127.0.0.1:7897
+  git config --global https.proxy http://127.0.0.1:7897
+  ```
+
+  代理端口若变，改这两项即可；`scripts/push.ps1` 会自动沿用 git 的代理配置。
 - 本机 `git`：`C:\Users\DELL\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe`（也可用系统 git）。
 - 本机 Python：3.9.12（系统，含 pytest 7.1.1）；另有 3.12.14（Codex 运行时）。**验证脚本只用标准库**，两版都能跑。

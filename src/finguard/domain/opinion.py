@@ -1,0 +1,163 @@
+"""审查意见模型（PRD 6.3 FR-AUDIT-01 ~ 07）。
+
+意见分两种形态，**区别在于有没有通过引用闸门**：
+
+    OpinionDraft   —— 生成阶段的草稿。模型（或桩件）产出，可能缺引用三件套，
+                      会被闸门拦下，**不进输出通道**（FR-AUDIT-07）。
+    ReviewOpinion  —— 通过闸门后的正式意见，进入签核与卷宗。
+
+另有两张统计面：
+    CoverageSummary —— 覆盖度三类计数，必须自洽（已判定 + 不适用 + 未判定 = 规则总数）。
+    UnresolvedEntry —— 未判定条目，带原因码（FR-AUDIT-02）。
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+from .enums import CoverageFlag, Severity, UnresolvedReasonCode
+
+__all__ = [
+    "OpinionOrigin",
+    "OpinionDraft",
+    "ReviewOpinion",
+    "BlockedOpinion",
+    "SeverityCorrection",
+    "UnresolvedEntry",
+    "CoverageSummary",
+]
+
+
+class OpinionOrigin(str, Enum):
+    """意见来源。"""
+
+    RULE_ENGINE = "rule_engine"   # 由判定结果直接派生
+    MODEL = "model"               # 由模型生成理由（需过闸门）
+    HUMAN = "human"               # 人工撰写
+
+
+@dataclass(frozen=True)
+class OpinionDraft:
+    """生成阶段的意见草稿。字段可以缺——缺了正是闸门要拦的。"""
+
+    rule_id: str
+    rule_version: str
+    severity: Severity
+    fact_refs: Tuple[str, ...] = ()
+    rationale: str = ""
+    quotes: Tuple[str, ...] = ()
+    origin: OpinionOrigin = OpinionOrigin.MODEL
+
+
+@dataclass(frozen=True)
+class ReviewOpinion:
+    """通过闸门后的正式审查意见。"""
+
+    opinion_id: str
+    rule_id: str
+    rule_version: str
+    severity: Severity
+    fact_refs: Tuple[str, ...]
+    rationale: str
+    coverage: CoverageFlag
+    quotes: Tuple[str, ...] = ()
+    unresolved_reason_code: Optional[UnresolvedReasonCode] = None
+    origin: OpinionOrigin = OpinionOrigin.MODEL
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "opinion_id": self.opinion_id,
+            "rule_id": self.rule_id,
+            "rule_version": self.rule_version,
+            "severity": self.severity.value,
+            "fact_refs": list(self.fact_refs),
+            "rationale": self.rationale,
+            "coverage": self.coverage.value,
+            "quotes": list(self.quotes),
+            "unresolved_reason_code": self.unresolved_reason_code.value if self.unresolved_reason_code else None,
+            "origin": self.origin.value,
+        }
+
+
+@dataclass(frozen=True)
+class BlockedOpinion:
+    """被引用闸门或禁止行为拦下的草稿。**不进输出通道**，但必须留痕。"""
+
+    rule_id: str
+    rule_version: str
+    reason: str
+    missing: Tuple[str, ...] = ()
+    forbidden: Tuple[str, ...] = ()
+    detail: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rule_id": self.rule_id,
+            "rule_version": self.rule_version,
+            "reason": self.reason,
+            "missing": list(self.missing),
+            "forbidden": list(self.forbidden),
+            "detail": self.detail,
+        }
+
+
+@dataclass(frozen=True)
+class SeverityCorrection:
+    """严重度被强制替换回规则库值的记录（FR-AUDIT-03 / FB-04）。"""
+
+    rule_id: str
+    rule_version: str
+    proposed: Severity
+    applied: Severity
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rule_id": self.rule_id,
+            "rule_version": self.rule_version,
+            "proposed": self.proposed.value,
+            "applied": self.applied.value,
+        }
+
+
+@dataclass(frozen=True)
+class UnresolvedEntry:
+    """未判定条目：带原因码，计入覆盖度。"""
+
+    rule_id: str
+    rule_version: str
+    reason_code: UnresolvedReasonCode
+    detail: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "rule_id": self.rule_id,
+            "rule_version": self.rule_version,
+            "reason_code": self.reason_code.value,
+            "detail": self.detail,
+        }
+
+
+@dataclass(frozen=True)
+class CoverageSummary:
+    """覆盖度三类计数。自洽条件：三类之和 == 规则总数（每条规则有且仅归入一类）。"""
+
+    judged: int = 0
+    not_applicable: int = 0
+    unresolved: int = 0
+    total: int = 0
+    unresolved_entries: Tuple[UnresolvedEntry, ...] = ()
+
+    @property
+    def is_consistent(self) -> bool:
+        return self.judged + self.not_applicable + self.unresolved == self.total
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "judged": self.judged,
+            "not_applicable": self.not_applicable,
+            "unresolved": self.unresolved,
+            "total": self.total,
+            "is_consistent": self.is_consistent,
+            "unresolved_entries": [e.to_dict() for e in self.unresolved_entries],
+        }
