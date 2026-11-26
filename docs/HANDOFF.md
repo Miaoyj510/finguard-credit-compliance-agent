@@ -301,7 +301,7 @@ git commit -am "review: 切片 2 评审意见"
 | **分支** | `feat/impl` |
 | **切片目标** | 实现 PRD 8.2 的事实层：**双路抽取合并 → 交叉一致性核对 → 冲突入队 → 产出可判定事实集** |
 | **本次不含** | 真实 OCR 与真实模型调用（留到切片 9 接入，理由见 PRD 7.6.7 选型轴①②③⑨）、审查意见生成（切片 4）、闸门（切片 5） |
-| **验证命令** | `python scripts/verify.py --slice 3`（预期 **44 / 44 通过**）；全量 `python scripts/verify.py` 预期 **151 / 151 通过** |
+| **验证命令** | `python scripts/verify.py --slice 3`（预期 **66 / 66 通过**：原 44 + 评审新增 15 + 决策落地新增 7）；全量 `python scripts/verify.py` 预期 **285 / 285 通过**（截至切片 5 交付点） |
 
 ### 改了什么
 
@@ -423,6 +423,21 @@ git commit -am "review: 切片 3 评审意见"
 | 探针 P1—P8 复测 | 全部闭环：候选两值并列、双拦、裁决后 90% 偏离入队拦截、变形词拦截、零营收冲突、locator 不误报、NaN 返回 None |
 
 > 给实现方：合并后请把切片 3「验证命令」预期从 44 / 44 同步为 **59 / 59**、全量 151 → **166**；ROADMAP 切片 3 验收框建议在合并评审后再标 ✅。意见 8 与 A1 / A2 请给决策。切片 4 已建在修复前事实层上，合并后务必重跑完整回归。
+
+### 实现方对评审意见的决策（切片 3）
+
+> 决策人：实现方。评审方的 2 高 + 5 中缺陷已由评审方修复并合入本分支；
+> 下列是**留给实现方的 5 项**，逐条给结论与落地位置。
+
+| # | 评审条目 | 决策 | 落地位置 | 影响 |
+| --- | --- | --- | --- | --- |
+| 意见 8 | 勾稽冲突（CC）裁决是否改写事实取值 | **不改写事实取值**。CROSS_CHECK 冲突的两个取值来自**两个不同事实**（申报营收 vs 流水合计），择一覆写会静默改变"客户申报了什么"的语义。裁决的含义是"以哪个口径为准 / 是否可接受"，因此**只解除该核对涉及字段的阻塞**，裁决结论（谁、以哪个口径、为什么）写进核对说明；LOW_CONFIDENCE 冲突（同一字段的两个抽取值）才是**择一覆写** | `facts/conflict.py` `apply_resolutions()` 按 `ConflictKind` 分流；`facts/layer.py` `_annotate_adjudicated_checks()` | 新增 `tests/test_facts_adjudication.py` 7 项；切片 3 断言 59 → 66 |
+| A1 | `FactLayer.strict` 开关 | **移除**。它能关闭 FR-FACT-07「出现结论词即失败」这条产品不变量，且全仓零使用——**能关掉不变量的开关本身就是风险面** | `facts/layer.py` 删除 `strict` 字段，结论词闸门恒生效 | 断言同步更新 |
+| A2 | `adjudicated_at` 全链路可选且从未赋值 | **由 `ConflictQueue.resolve()` 统一填 UTC 时间戳**。裁决时间戳是卷宗与回放（切片 6）的必需字段，不该由每个调用方各填各的 | `facts/conflict.py` `resolve()` | NFR-09 留痕口径落地 |
+| A4 | ROADMAP / HANDOFF 断言数与实际不符 | **同步为实测值**：切片 3 = 66 项，全量 = 285 项（截至切片 5 交付点） | 本文件、`docs/ROADMAP.md`、`README.md` | 口径一致 |
+| A5 | `verify.py` 通过数按 failures 条数算，subTest 失败会让"通过数"虚高 | **改为按测试方法计**：失败按**去重后的方法数**统计，并**单列失败断言条数**（输出形如「X 个方法失败（Y 条失败断言）」） | `scripts/verify.py` `main()` | 计数口径自洽 |
+
+> **口径提醒**：各切片的**分切片断言数**是稳定的；"全量"数字随切片推进变化，本文件统一标注为**最新交付点**（切片 5）的实测值，避免评审方按旧数字复现时误判为回归。
 ---
 
 ## 切片 4　审查意见与引用闸门
@@ -432,7 +447,7 @@ git commit -am "review: 切片 3 评审意见"
 | **分支** | `feat/impl` |
 | **切片目标** | 实现 PRD 6.3 的审查意见层：把判定结果 + 事实变成**可签核的结构化意见**，并让「引用三件套」「严重度来源」「禁止行为」三道线**在生成阶段就拦住** |
 | **本次不含** | 真实大模型调用（留到切片 9，PRD 7.6.7 选型轴①）、Harness 编排与人审闸门（切片 5）、卷宗与回放（切片 6） |
-| **验证命令** | `python scripts/verify.py --slice 4`（预期 **35 / 35 通过**）；全量 `python scripts/verify.py` 预期 **186 / 186 通过** |
+| **验证命令** | `python scripts/verify.py --slice 4`（预期 **42 / 42 通过**：原 35 + 评审新增 7）；全量 `python scripts/verify.py` 预期 **285 / 285 通过**（截至切片 5 交付点） |
 
 ### 改了什么
 
@@ -548,14 +563,125 @@ git commit -am "review: 切片 4 评审意见"
 | 探针 Q1—Q7 复测 | 制度名 3/3 放行、quotes 注入被拦、FB-02/FB-03 正例对照成立；Q3/Q5 为咨询项留档 |
 
 > 给实现方：合并后请把切片 4「验证命令」预期从 35 / 35 同步为 **42 / 42**、全量同步为 **208 / 208**（含切片 3 评审修复）；意见 4 / 5 请给决策；ROADMAP 切片 3 / 4 验收框建议合并评审后再标 ✅。工具提交 `3bc93cd`（git 代理配置）已随合并纳入，README / push.ps1 说明性改动无异议。
+
+### 实现方对评审意见的决策（切片 4）
+
+> 评审方的 2 中高 + 1 中缺陷已修复并合入；下列 2 项咨询 + 4 项留档，逐条给结论。
+
+| # | 评审条目 | 决策 | 落地位置 |
+| --- | --- | --- | --- |
+| 意见 4 | `quote_required` 未强制 | **既不空留，也不在桩件阶段全量强制**：改为**规则级标志** `Rule.quote_required`。引用闸门在规则显式要求 quote 且 `quotes` 为空时拦截（缺项记为 `quotes`）。演示种子规则默认 `False`（桩件阶段没有真原文，强制会拦死全部演示意见），**真实制度条款类规则由切片 9 的规则工作台逐条标注** | `domain/rule.py` 新增字段；`agents/auditor.py` `CitationGate.check()` |
+| 意见 5 | 意见编号碰撞 | **接案件号**：`Auditor.build(..., case_id=...)` 时编号为 `OP-<case_id>-<seq>`（案件内唯一，切片 6 卷宗可直接按它建键）；不传 `case_id` 时保留旧格式，但**同一次 build 内重复即补序号**，杜绝同号静默覆盖 | `agents/auditor.py` `build()` |
+| A1 | 覆盖度 `judged` 含被拦意见 | **采纳**：口径写进 `CoverageSummary` 的 docstring——`judged` 计引擎判定数，通常大于 `len(opinions)`（被闸门拦下的意见不进 opinions），两者口径不同不可混用 | `domain/opinion.py` |
+| A2 | 闸门「缺项」措辞：版本对不上也标 missing | **留档不改代码**。`missing` 元组保持字段名（评审新增断言以 `assertIn("rule_version", ...)` 钉住），措辞细化不影响拦截率指标；留到切片 9 审计文案统一时一并处理 | `agents/auditor.py`（切片 9 跟进） |
+| A3 | FB action 与 AgentSpec 差异 | **认可**（实现更严）：FB-02 / FB-05 统一拦截而非降级。切片 5 接状态机时**保留拦截语义**并留档——闸门取的是"已通过闸门的正式意见"，被拦的草稿本就进不了卷宗 | `agents/harness/` |
+| A4 | `is_consistent` 构造性恒真，抓不到"与实际绑定规则数不符" | **采纳**：覆盖度新增 `bound_rule_total`（本案实际绑定规则条数），与 `total` 不一致即判不自洽；切片 5 由编排器把绑定规则数传进来做交叉校验 | `domain/opinion.py` `CoverageSummary`；`agents/auditor.py` `build(bound_rule_total=...)` |
+
+> 评审方提的「切片 4 建在修复前事实层上，合并后务必重跑完整回归」已执行：合并后全量 285 / 285 通过。
 ---
 
+## 切片 5　Harness 编排与三处人审闸门
+
+| 项 | 内容 |
+| --- | --- |
+| **分支** | `feat/impl` |
+| **切片目标** | 实现 PRD 8.2 / 8.5 / 8.6 / 8.7：**17 状态状态机 + Handoff 契约 + 三处强制人审闸门**，把「不可绕过 / 不可代签 / 超时只升级」做成**结构上无法绕过**，而不是靠约定 |
+| **本次不含** | 不可篡改事件日志与六层卷宗回放（切片 6）、贷后常驻循环与 GATE-C 业务流（切片 7）、评测框架与 Gate 判定（切片 8）、真实模型接入（切片 9） |
+| **验证命令** | `python scripts/verify.py --slice 5`（预期 **70 / 70 通过**）；全量 `python scripts/verify.py` 预期 **285 / 285 通过**；`python scripts/verify.py --checkpoint milestone` 额外打印**安全探针实测表**（现场把 6 条绕过路径打一遍） |
+
+### 改了什么
+
+| 文件 | 类型 | 说明 |
+| --- | --- | --- |
+| `src/finguard/agents/harness/states.py` | 新增 | 17 状态枚举、迁移白名单 `TRANSITIONS`、闸门前置/放行映射、`bypass_edges()` 绕行边自检、可达性计算 |
+| `src/finguard/agents/harness/gates.py` | 新增 | `GateRecord`（闸门状态 + 签核证据 + 升级链 + 改写留痕）、`Signer`（实名/岗位/授权层级/案件类型/设备指纹/IP/代签标记）、`GateState`、`GATE_SPECS` 三处闸门规格 |
+| `src/finguard/agents/harness/handoff.py` | 新增 | PRD 8.6 的 14 个必填字段契约、拓扑边白名单、`Handoff.validate()`（缺字段即中断，**不用默认值补齐**） |
+| `src/finguard/agents/harness/orchestrator.py` | 新增 | `Harness`：迁移四道检查、闸门签核/退回/超时升级、`auto_advance()`（遇闸门必停）、`build_handoff()`、安全计数器 |
+| `src/finguard/agents/harness/audit.py` | 新增 | 判定链审计测量点 `DecisionChainAuditLog`：记录谁调用、进入字段、被拦字段与原因；越权召回**算出来**而不是写死 |
+| `src/finguard/agents/harness/__init__.py` | 新增 | 包导出（**惰性导入**，避免 domain ↔ agents 循环依赖） |
+| `src/finguard/domain/case_state.py` | 新增 | PRD 8.4 的编排态 `CaseFile`：阶段**只读**、直接赋值抛 `StageMutationError`、案件对象上的 `sign()` 一律拒绝 |
+| `src/finguard/facts/models.py` | 修改 | `FactSet` 增加 `decision_audit` 钩子（`compare=False` / `repr=False`，不影响既有相等性与打印）；新增 `blocked_reasons()` |
+| `src/finguard/domain/enums.py` | 修改 | 新增原因码 `CONFLICT_UNRESOLVED`（事实冲突未裁决） |
+| `src/finguard/agents/auditor.py` | 修改 | 评审决策落地：`build(case_id=..., bound_rule_total=...)`；`decision_ready()` 只取一次；引用闸门按规则 `quote_required` 校验 quotes |
+| `src/finguard/domain/rule.py` | 修改 | 新增 `quote_required` 字段（规则级「依据须附原文片段」标志） |
+| `src/finguard/domain/opinion.py` | 修改 | `CoverageSummary.bound_rule_total` 交叉校验（A4）；覆盖度口径 docstring（A1） |
+| `tests/test_harness_states.py` | 新增 | 8 项断言：状态清单与 PRD 一致、全部可达、无绕行边、闸门出边形状 |
+| `tests/test_handoff.py` | 新增 | 15 项断言：必填字段、拓扑边、严重度来源、覆盖度自洽 |
+| `tests/test_gates.py` | 新增 | 27 项断言：资格三重校验、不可代签、职责分离、幂等、退回、超时只升级、改写双版本 |
+| `tests/test_orchestrator.py` | 新增 | 20 项断言：**绕过专项**（跳闸门 / 改阶段 / 案件对象签核 / 伪造状态 / 超时放行 / 无资格签核）+ 合法路径 |
+| `tests/test_audit_probe.py` | 新增 | 8 项断言：进入判定链次数、调用方、被拦集合与原因、越权召回 = 0 |
+| `scripts/verify.py` | 修改 | 注册 `harness` 套件；新增**安全探针**（`--checkpoint milestone` 现场打 6 条绕过尝试并出表，未达标则退出码非 0）；表格按中文显示宽度对齐 |
+
+### 影响到什么功能与效果
+
+| 层面 | 影响 |
+| --- | --- |
+| **功能** | 案件第一次有了**可推进、可签核、可交接**的编排运行时：17 状态白名单驱动，Agent 之间靠 Handoff 契约交接，三处闸门控制唯一的结论出口 |
+| **对外效果** | 编排器把案子推到闸门口就**停住**等人，人工签核后才继续。没有任何一条自动路径能跨过闸门——不是靠提示，是状态机里根本没有那条边 |
+| **合规效果** | ① 绕行尝试全部被拦并计数（SEC-03）② 批量导入式签核、规则发布人签核、Agent 运行主体签核全部被拒（SEC-04 / G-5）③ 超时只升级不放行（FR-GATE-04）④ 人工改写保留原始与修改后双版本（FR-GATE-06）⑤ Handoff 缺字段即中断（PRD 8.6） |
+| **可度量** | 支撑 PRD 指标 **SEC-01（越权召回 = 0）**、**SEC-03（闸门绕行 = 0）**、**SEC-04（代签尝试 = 0）**、**SEC-06（审计留痕覆盖率）** 的实现侧；`--checkpoint milestone` 能现场看到实测值 |
+| **不影响的** | 事件日志哈希链与六层卷宗（切片 6）、贷后循环业务流（切片 7）、评测与 Gate 判定（切片 8）、真实模型接入（切片 9） |
+
+### 关键设计点（建议重点看这 5 处）
+
+1. **闸门不是"流程节点"，是"缺了就过不去"** —— 状态机白名单里，S3 的出边**只有** GATE_A；GATE_A 的出边**只有** S4（放行）与 S3（退回）。想跳过 GATE-A 直接进 S4，数据上就不存在这条边，`bypass_edges()` 自检返回空元组。
+2. **放行要"签核证据"，不要"状态位"** —— `GateRecord.approval_evidence()` 要求状态为 APPROVED **且**实名账号、时间戳、设备指纹、IP 四项齐全。只把状态字段改成 APPROVED（绕过方法直接改 `_state`）**依然拿不到放行资格**——这条专门写成了断言。
+3. **阶段字段不可直接赋值** —— `CaseFile.stage` 的 setter 只抛异常，写入口是编排器持令牌的 `_set_stage`。**这不是安全边界**（进程内约束挡不住同进程代码），它的价值是让绕过必须走**可审计**的路径；真正的边界是签核记录 + 不可篡改事件日志（切片 6）。评审方若要求更强约束，请指示是否要在切片 6 把阶段变更改成「只经事件日志重放推出」。
+4. **超时只有"升级"这一个动作** —— `GateState` 枚举里**没有** `TIMEOUT_PASS` / `AUTO_APPROVED` 这类取值，超时只往 `escalations` 追加一条记录，状态**保持 PENDING**。要让"超时自动放行"成为不可能，光靠代码纪律不够，得让状态枚举本身不支持它。
+5. **测量点挂在判定链唯一入口上** —— `FactSet.decision_ready()` 是判定链唯一入口，审计钩子挂在这里，每次进入都记录调用方、进入字段、被拦字段与原因码。SEC-01 的「越权召回 = 0」因此是**算出来的**（entered ∩ blocked 的交集大小），判定链哪天改坏了，指标立刻变成非 0。
+
+### 有意留白
+
+| 项 | 原因 | 计划 |
+| --- | --- | --- |
+| 事件日志只有**内存列表**，没有哈希链 | 哈希链与只追加存储是切片 6 的交付物，本切片只保证「闸门动作与状态迁移都产生事件条目」 | 切片 6 接不可篡改日志，回放时校验哈希链 |
+| 签核人**授权层级**用整数比较，未接组织架构 | Demo 阶段无真实权限系统 | 切片 9 接权限模型，替换 `authority_level` 的比较口径 |
+| 案件号 `case_id` 由调用方传入，未做全局唯一性校验 | 唯一性由业务系统保证 | 切片 6 建卷宗时校验唯一性 |
+| GATE-C 只落了**闸门机制**，未落贷后业务流 | 贷后循环属切片 7 | 切片 7 接预警生成、核查初核与四档处置 |
+| `quote_required` 默认 False，演示种子规则不标 | 桩件阶段没有真原文，强制会拦死全部演示意见 | 切片 9 规则工作台按制度条款类型逐条标注 |
+| 未做**卷宗六层**齐全性校验 | 属切片 6 | 切片 6 |
+
+### 评审方请确认
+
+- [ ] 状态机的 17 状态是否与 PRD 8.5 清单**逐字一致**（我按图 8-1 抄录，请核对命名与遗漏）
+- [ ] 「放行要签核证据，不要状态位」这个加强是否足够，还是要求把闸门状态与签核记录**物理分离**（闸门只读、签核记录单独存）
+- [ ] 阶段字段用「令牌 + 只读 property」约束是否够，还是要求在切片 6 就把阶段变更改成**只经事件日志重放**推出
+- [ ] 三处闸门的**超时时长**（24 / 24 / 48 小时）与升级链层级是否与 PRD 8.7 一致
+- [ ] Handoff 的 14 个必填字段中，`citation_bundle` 与 `open_questions` 允许空数组而 `rule_binding` / `facts_digest` 不允许——这个「空数组 vs 缺失」的区分口径是否符合预期
+- [ ] 评审意见 4（`quote_required`）的落地方式（规则级标志 + 默认 False）是否接受，还是要求现在就全量强制
+- [ ] 评审意见 5（意见编号）改为 `OP-<case_id>-<seq>` 后，切片 6 卷宗键是否够用
+- [ ] `bypass_edges()` 的合法前驱口径（放行闸门本身 + 下一个闸门的退回落点）是否与 PRD 图 8-1 一致
+
+### 评审方入口
+
+| 项 | 值 |
+| --- | --- |
+| 评审工作目录 | `D:\桌面\AIagent_project\金融项目\.worktrees\review` |
+| 评审分支 | `review/impl`（基于 `feat/impl` 的切片 5 交付点） |
+| 先做什么 | `cd .worktrees/review && git merge feat/impl` 后跑 `python scripts/verify.py --slice 5` 复现（预期 70 / 70） |
+| 只改什么 | `src/`、`tests/`、`scripts/`，以及本文件的「评审意见」段落 |
+| 不改什么 | PRD、需求编号、验收标准、`docs/ROADMAP.md` |
+| 提交后 | 停下，由实现方合并 `review/impl` → `feat/impl` 并复跑完整验证 |
+
+### 合并方式
+
+```bash
+# 评审方在自己的 worktree 里：
+git checkout review/impl
+git merge feat/impl
+# ... 审阅与修改 ...
+git commit -am "review: 切片 5 评审意见"
+# 提交后停下，由实现方合并回 feat/impl
+```
+
+---
 ## 待评审队列
 
 | 切片 | 状态 | 等待评审 |
 | --- | --- | --- |
 | 1 | ✅ 已完成并通过评审（已合并 `review/impl` → `feat/impl`，断言 27 → 49） | 否 |
 | 2 | ✅ 已通过评审（合并 `review/impl` → `feat/impl`，评审后 55 → 落地咨询项后 58，全量 107） | 否 |
-| 3 | ✅ 已实现，待评审（断言 44，全量 151） | **是** |
-| 4 | ✅ 已实现，待评审（断言 35，全量 186） | **是** |
-| 5—9 | ⬜ 未开始 | 否 |
+| 3 | ✅ 已通过评审（已合并 `review/impl` → `feat/impl`，评审后 59 → 落地决策后 66） | 否 |
+| 4 | ✅ 已通过评审（已合并 `review/impl` → `feat/impl`，评审后 42 → 落地咨询决策后 42，另接 A4 交叉校验） | 否 |
+| 5 | ✅ 已实现，待评审（断言 70，全量 285） | **是** |
+| 6—9 | ⬜ 未开始 | 否 |
