@@ -21,12 +21,33 @@ from .enums import CoverageFlag, Severity, UnresolvedReasonCode
 __all__ = [
     "OpinionOrigin",
     "OpinionDraft",
+    "FactCitation",
     "ReviewOpinion",
     "BlockedOpinion",
     "SeverityCorrection",
     "UnresolvedEntry",
     "CoverageSummary",
 ]
+
+
+@dataclass(frozen=True)
+class FactCitation:
+    """事实引用三元组（PRD 8.1 citation_requirement / FR-AUDIT-06）。
+
+    每项引用必须含 field_path / value / source_channel——只有字段名
+    不够：签核与回放（切片 6）需要判定当时的取值与来源通道快照。
+    """
+
+    field_path: str
+    value: Any
+    source_channel: Tuple[str, ...] = ()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "field_path": self.field_path,
+            "value": self.value,
+            "source_channel": list(self.source_channel),
+        }
 
 
 class OpinionOrigin(str, Enum):
@@ -64,6 +85,8 @@ class ReviewOpinion:
     quotes: Tuple[str, ...] = ()
     unresolved_reason_code: Optional[UnresolvedReasonCode] = None
     origin: OpinionOrigin = OpinionOrigin.MODEL
+    #: 引用三元组（field_path / value / source_channel），与 fact_refs 一一对应
+    fact_citations: Tuple[FactCitation, ...] = ()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -72,6 +95,7 @@ class ReviewOpinion:
             "rule_version": self.rule_version,
             "severity": self.severity.value,
             "fact_refs": list(self.fact_refs),
+            "fact_citations": [c.to_dict() for c in self.fact_citations],
             "rationale": self.rationale,
             "coverage": self.coverage.value,
             "quotes": list(self.quotes),
