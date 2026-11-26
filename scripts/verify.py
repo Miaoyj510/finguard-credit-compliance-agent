@@ -68,7 +68,8 @@ SUITES: Dict[str, Dict] = {
     "facts": {
         "slice": 3,
         "desc": "事实层双路抽取、低置信拦截与交叉核对",
-        "modules": [],
+        "modules": ["tests.test_facts_extract", "tests.test_facts_crosscheck",
+                    "tests.test_facts_conflict", "tests.test_facts_layer"],
     },
     "review": {
         "slice": 4,
