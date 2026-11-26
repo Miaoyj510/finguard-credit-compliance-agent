@@ -4,6 +4,9 @@
 - PRD 6.1 FR-RAG-01：判定返回 命中 / 不命中 / 不适用 三态
 - PRD 6.3 FR-AUDIT-02：覆盖度 = 已判定 / 不适用 / 未判定
 - PRD 6.3 FR-AUDIT-03：严重度由规则库定义，不自由生成
+
+注：PRD 只要求「未判定项必带原因码」，未枚举封闭码表，因此新增原因码
+不需要改 PRD；本枚举即实现侧的唯一码表。
 """
 from __future__ import annotations
 
@@ -47,4 +50,5 @@ class UnresolvedReasonCode(str, Enum):
     MISSING_FACT = "MISSING_FACT"              # 判定所需事实缺失
     LOW_CONFIDENCE = "LOW_CONFIDENCE"          # 事实置信度不足（切片 3 起使用）
     DSL_PARSE_ERROR = "DSL_PARSE_ERROR"        # 表达式无法解析，规则降级为未判定
-    TYPE_MISMATCH = "TYPE_MISMATCH"            # 事实类型不可比，降级为未判定
+    TYPE_MISMATCH = "TYPE_MISMATCH"            # 事实类型不可比 / NaN，降级为未判定
+    ENGINE_ERROR = "ENGINE_ERROR"              # 引擎内部异常，降级为未判定

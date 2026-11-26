@@ -49,6 +49,11 @@ class TestParseValid(unittest.TestCase):
         e = parse_expression("IF fact.a < fact.b THEN hit('x')")
         self.assertEqual(e.field_names(), ("a", "b"))
 
+    def test_重复字段名去重保序(self):
+        """fact.a < fact.a 只算一个字段——fact_refs 与 reason 都不该出现「a、a」。"""
+        e = parse_expression("IF fact.a < fact.a THEN hit('x')")
+        self.assertEqual(e.field_names(), ("a",))
+
     def test_解析结果不可变且可哈希(self):
         e = parse_expression("IF fact.a < 1 THEN hit('x')")
         with self.assertRaises(AttributeError):
@@ -122,6 +127,18 @@ class TestParseStrictGaps(unittest.TestCase):
         """外部内容里的全角数字不得被静默归一成 ASCII 数字（与 rule_id 的 ASCII 闸一致）。"""
         with self.assertRaises(DslParseError):
             parse_expression("IF fact.a < １２３ THEN hit('x')")
+
+    def test_未知转义被拒(self):
+        """严格性要在解析期兑现：只认 \\ \\\' \\\"，其余一律报错。"""
+        bs = chr(92)
+        for text in (
+            "IF fact.a == 'a" + bs + "qb' THEN hit('x')",
+            "IF fact.a == 'a" + bs + "nb' THEN hit('x')",
+            "IF fact.a == 'a" + bs + "' THEN hit('x')",
+        ):
+            with self.subTest(text=text):
+                with self.assertRaises(DslParseError):
+                    parse_expression(text)
 
     def test_支持的转义正确还原(self):
         bs = chr(92)

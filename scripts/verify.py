@@ -38,11 +38,17 @@ for _p in (ROOT, SRC):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-for _stream in ("stdout", "stderr"):
-    try:
-        getattr(sys, _stream).reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
-    except Exception:
-        pass
+def _reconfigure_streams() -> None:
+    """把标准流切到 utf-8。
+
+    放在 main() 里而不是模块顶层：否则 `import verify` 会改动调用方的输出编码
+    （评审意见 11）。被当作库导入时不产生任何副作用。
+    """
+    for _stream in ("stdout", "stderr"):
+        try:
+            getattr(sys, _stream).reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
 # ---------------------------------------------------------------- 套件登记表
 # slice : 切片序号（对应 docs/ROADMAP.md）
@@ -200,6 +206,7 @@ def print_milestone_gate_table() -> None:
 
 
 def main() -> int:
+    _reconfigure_streams()
     ap = argparse.ArgumentParser(description="FinGuard 验证入口")
     ap.add_argument("--list", action="store_true", help="列出切片与套件状态")
     ap.add_argument("--slice", type=int, default=None, help="只跑指定切片的套件")

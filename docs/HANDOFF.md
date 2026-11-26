@@ -146,7 +146,7 @@ git commit -am "review: 切片 1 评审意见"
 | **分支** | `feat/impl` |
 | **切片目标** | 实现 PRD 5.4 的规则 DSL **解析**与**确定性判定**：把规则表达式与事实求值成「命中 / 不命中 / 不适用」，并把一切异常降级成「未判定」 |
 | **本次不含** | 事实层抽取（切片 3）、审查意见生成（切片 4）、模型调用 |
-| **验证命令** | `python scripts/verify.py --slice 2`（预期 **44 / 44 通过**）；全量 `python scripts/verify.py` 预期 **93 / 93 通过** |
+| **验证命令** | `python scripts/verify.py --slice 2`（预期 **58 / 58 通过**）；全量 `python scripts/verify.py` 预期 **107 / 107 通过** |
 
 ### 改了什么
 
@@ -197,13 +197,59 @@ git commit -am "review: 切片 1 评审意见"
 | 事实为 None 一律当缺失 | 目前没有「显式空值」的业务含义 | 切片 3 事实层补充语义时再定 |
 | 规则取用接口尚未暴露给工具层 | 切片 2 只做库内判定，不接工具层 | 切片 4 / 9 接入 |
 
-### 评审方请确认
+### 评审方请确认（评审方已逐条答复）
 
-- [ ] DSL 语法是否够用；是否需要提前支持 AND/OR 或决策表
-- [ ] 严格性（大小写、类型不可比降级）是否符合规则维护人员的实际习惯，会不会太难用
-- [ ] `context=None` 的语义是否清晰；是否应该改成**必填**以杜绝未绑定规则被直接判定
-- [ ] 「引擎永不抛异常」是否掩盖了本该暴露的问题（是否有该抛而不抛的场合）
-- [ ] 五个产品不变量在切片 2 里是否被正确实现（尤其 FR-AUDIT-03 严重度来源）
+- [x] DSL 语法是否够用 → 够用，AND/OR 与决策表按留白计划走后续切片，不提前建
+- [x] 严格性是否太难用 → 可接受；建议切片 9 规则工作台提供实时解析预览
+- [x] `context=None` 是否改必填 → 不改；**切片 4/5 调用方一律传 context**（纵深防御）
+- [x] 「永不抛异常」是否掩盖问题 → 评审修了两处洞；现边界是「坏数据降级、调用方 bug 抛 TypeError」
+- [x] 五个产品不变量 → ①②⑤ 在本切片成立；②③④ 属切片 3/4/5
+
+### 评审方入口
+
+| 项 | 值 |
+| --- | --- |
+| 评审工作目录 | `D:\桌面\AIagent_project\金融项目\.worktrees\review` |
+| 评审分支 | `review/impl`（基于 `feat/impl` 的 `0af3ec6`） |
+| 先做什么 | `cd .worktrees/review && python scripts/verify.py --slice 2` 复现结果 |
+| 只改什么 | `src/`、`tests/`、`scripts/`，以及本文件的「评审意见」段落 |
+| 不改什么 | PRD、需求编号、验收标准、`docs/ROADMAP.md` |
+| 提交后 | 停下，由实现方合并 `review/impl` → `feat/impl` 并复跑完整验证 |
+
+### 评审落地记录（评审方 6 处缺陷 + 实现方 5 项咨询决策）
+
+评审方修复（提交 `76e5764` / `016e2b1`，评审后切片 2 为 55 项）：
+
+| # | 问题 | 处理 |
+| --- | --- | --- |
+| 1 | **NaN 静默判定**：`nan < 100` → 未命中、`nan != 100` → 命中 | NaN 单独拦截 → 未判定 / TYPE_MISMATCH；inf 视为合法无界值并补断言 |
+| 2 | **契约边界有洞**：`rule=None` 抛 AttributeError；`facts=None` 被误标 DSL_PARSE_ERROR | 非 Rule / 非 Mapping 抛 TypeError（调用方 bug 该抛）；`facts=None` 视为空事实走 MISSING_FACT |
+| 3 | `hit('')` 空 label 可解析 | 解析期拒绝空 / 纯空白 label |
+| 4 | 数字字面量正则是 Unicode 模式，全角数字被静默归一 | number 模式改 ASCII 数字类 |
+| 5 | 「可哈希」仅对可哈希事实值成立；未判定也标 NOT_APPLICABLE 易被误读 | 写入 docstring：**下游区分不适用 / 未判定必须读 coverage / reason_code** |
+| 6 | `assertRaises(Exception)` 过宽 | 收紧为 AttributeError；补 inf / 字符串字典序 / 转义还原断言 |
+
+实现方对 5 项咨询的决策（已全部落地，断言 55 → 58）：
+
+| # | 咨询项 | 决策 | 落地方式 |
+| --- | --- | --- | --- |
+| 7 | 兜底分支误标 `DSL_PARSE_ERROR`，建议加 `ENGINE_ERROR` | **采纳**。PRD 只要求「原因码非空」，未枚举封闭码表，故无需改 PRD | 新增 `UnresolvedReasonCode.ENGINE_ERROR`；兜底分支改用它；新增断言（mock 引擎内部异常） |
+| 8 | 未知转义静默透传 | **采纳**——严格性要在解析期兑现 | `_unquote` 改为扫描式，只认反斜杠、单引号、双引号三种转义，其余抛 DslParseError；新增断言 |
+| 9 | 重复字段名 `fact.a < fact.a` 输出「a、a」 | **采纳**——去重保序 | 在 `Comparison.field_names()` 一处去重，fact_refs / reason / values 一次性全部受益；新增断言 |
+| 10 | push.ps1 默认推 main、路径硬编码、令牌暴露面 | **采纳**——补闸门 + 可配置 + 说明 | 推送前**强制跑完整回归，不绿不许推**（ROADMAP 检查点要求）；git / gh 路径可用 `FINGUARD_GIT` / `FINGUARD_GH` 覆盖；脚本头注明令牌暴露面与 `gh auth logout` 吊销方式 |
+| 11 | `import verify` 触发 stdout/stderr 重配副作用 | **采纳** | `reconfigure` 移入 `main()`；被当库导入时无任何副作用 |
+
+> 咨询 7 的补充说明：`src/finguard/domain/enums.py` 原注释写「改动需同步 PRD」。经核对，PRD 第 515、1085 行等处只要求「未判定项必带原因码 / 原因码非空」，**并未枚举封闭码表**，因此新增码不构成 PRD 变更；已把该注释改为如实描述。
+
+### 合并方式
+
+```bash
+# 评审方在自己的 worktree 里：
+git checkout review/impl
+# ... 审阅与修改 ...
+git commit -am "review: 切片 2 评审意见"
+# 提交后停下，由实现方合并回 feat/impl
+```
 
 ### 评审意见（由评审方填写）
 
@@ -254,5 +300,5 @@ git commit -am "review: 切片 1 评审意见"
 | 切片 | 状态 | 等待评审 |
 | --- | --- | --- |
 | 1 | ✅ 已完成并通过评审（已合并 `review/impl` → `feat/impl`，断言 27 → 49） | 否 |
-| 2 | ✅ 已实现，待评审（断言 44，全量 93） | **是** |
+| 2 | ✅ 已通过评审（合并 `review/impl` → `feat/impl`，评审后 55 → 落地咨询项后 58，全量 107） | 否 |
 | 3—9 | ⬜ 未开始 | 否 |

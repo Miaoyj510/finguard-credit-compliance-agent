@@ -187,7 +187,7 @@ class RuleEngine:
                 verdict=Verdict.NOT_APPLICABLE,
                 coverage=CoverageFlag.UNRESOLVED,
                 reason="引擎内部异常，已降级为未判定：%s" % (exc.__class__.__name__,),
-                reason_code=UnresolvedReasonCode.DSL_PARSE_ERROR,
+                reason_code=UnresolvedReasonCode.ENGINE_ERROR,
                 fact_refs=(),
                 values=(),
                 severity=rule.severity,

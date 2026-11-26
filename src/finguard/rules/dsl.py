@@ -95,7 +95,7 @@ def tokenize(text: str) -> List[Token]:
         if kind == "number":
             tokens.append(Token("number", _to_number(value), start))
         elif kind == "string":
-            tokens.append(Token("string", _unquote(value), start))
+            tokens.append(Token("string", _unquote(value, start), start))
         elif kind == "ident":
             tokens.append(Token("ident", value, start))
         elif kind == "op":
@@ -111,9 +111,32 @@ def _to_number(raw: str) -> Union[int, float]:
     return int(raw)
 
 
-def _unquote(raw: str) -> str:
+#: 字符串里允许的转义序列——只认这三个，别的直接报错
+_ALLOWED_ESCAPES = {"\\": "\\", "'": "'", '"': '"'}
+
+
+def _unquote(raw: str, position: int = 0) -> str:
+    """解开字符串字面量。**未知转义一律拒绝**——严格性要在解析期兑现。"""
     body = raw[1:-1]
-    return body.replace("\\'", "'").replace('\\"', '"').replace("\\\\", "\\")
+    out = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\":
+            if i + 1 >= len(body):
+                raise DslParseError("字符串以孤立的反斜杠结尾", position, raw)
+            nxt = body[i + 1]
+            if nxt not in _ALLOWED_ESCAPES:
+                raise DslParseError(
+                    "未知的转义字符：\\%s（仅支持 \\\\ \\\' \\\"）" % (nxt,),
+                    position, raw,
+                )
+            out.append(_ALLOWED_ESCAPES[nxt])
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 # ---------------------------------------------------------------- 语法树
@@ -143,9 +166,10 @@ class Comparison:
     rhs: Operand
 
     def field_names(self) -> Tuple[str, ...]:
-        names = []
+        """去重保序：fact.a < fact.a 只算一个字段。"""
+        names: List[str] = []
         for side in (self.lhs, self.rhs):
-            if isinstance(side, FieldRef):
+            if isinstance(side, FieldRef) and side.name not in names:
                 names.append(side.name)
         return tuple(names)
 

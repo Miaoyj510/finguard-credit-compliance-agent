@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    把本地分支推送到 GitHub。
+    把本地分支推送到 GitHub（推送前自动跑完整回归，不绿不许推）。
 
 .DESCRIPTION
     这台机器上两个 git 都有问题：
@@ -9,12 +9,19 @@
       · Codex 运行时 git 的 git-remote-https 在「认证重试」阶段会静默崩溃
         （exit 128、零输出）。
 
-    所以这里绕开 git 的凭据协商：从 gh 的凭据存储里取到 OAuth 令牌，
+    解法：绕开 git 的凭据协商，从 gh 的凭据存储里取到 OAuth 令牌，
     拼成 Basic 认证头，用 http.extraHeader 预置——令牌只存在于本进程的
     环境变量里，不落盘、不进命令行、不进 shell 历史。
 
+    安全说明：令牌放在进程环境变量中，同用户的其他进程理论上可读。
+    这是 gh 自身 OAuth 令牌的暴露面，换来的是「不落盘、不进命令行」。
+    令牌可用 `gh auth logout` 随时吊销。
+
 .PARAMETER Branches
     要推送的分支，默认三个都推。
+
+.PARAMETER SkipVerify
+    跳过推送前的完整回归（不推荐；ROADMAP 要求合并 main 前后都跑完整测试）。
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts/push.ps1
@@ -22,7 +29,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string[]]$Branches = @("main", "feat/impl", "review/impl")
+    [string[]]$Branches = @("main", "feat/impl", "review/impl"),
+    [switch]$SkipVerify
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +38,7 @@ $ErrorActionPreference = "Stop"
 function Resolve-GitExe {
     # 选一个真正带 git-remote-https 助手的 git
     $candidates = @()
+    if ($env:FINGUARD_GIT) { $candidates += $env:FINGUARD_GIT }
     $runtimeGit = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe"
     if (Test-Path $runtimeGit) { $candidates += $runtimeGit }
     $cmd = Get-Command git -ErrorAction SilentlyContinue
@@ -48,16 +57,21 @@ function Resolve-GitExe {
     throw "找不到带 git-remote-https 助手的 git，请检查安装。"
 }
 
-function Get-GhCredential {
-    # 不依赖 PATH：Windows PowerShell 5.1 常常拿不到新装的程序目录
-    $ghExe = $null
-    foreach ($c in @(
-            (Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -ErrorAction SilentlyContinue),
-            "C:\Program Files\GitHub CLI\gh.exe",
-            (Join-Path $env:LOCALAPPDATA "Programs\GitHub CLI\gh.exe"))) {
-        if ($c -and (Test-Path $c)) { $ghExe = $c; break }
+function Resolve-GhExe {
+    $candidates = @()
+    if ($env:FINGUARD_GH) { $candidates += $env:FINGUARD_GH }
+    $cmd = Get-Command gh -ErrorAction SilentlyContinue
+    if ($cmd) { $candidates += $cmd.Source }
+    $candidates += @("C:\Program Files\GitHub CLI\gh.exe",
+                      (Join-Path $env:LOCALAPPDATA "Programs\GitHub CLI\gh.exe"))
+    foreach ($exe in ($candidates | Where-Object { $_ } | Select-Object -Unique)) {
+        if (Test-Path $exe) { return $exe }
     }
-    if (-not $ghExe) { throw "未找到 gh，请先安装 GitHub CLI 并执行 gh auth login。" }
+    throw "未找到 gh，请先安装 GitHub CLI 并执行 gh auth login。"
+}
+
+function Get-GhCredential {
+    $ghExe = Resolve-GhExe
     $lines = "protocol=https`nhost=github.com`n`n" | & $ghExe auth git-credential get 2>$null
     $user = ($lines | Where-Object { $_ -like "username=*" }) -replace "^username=", ""
     $pass = ($lines | Where-Object { $_ -like "password=*" }) -replace "^password=", ""
@@ -65,7 +79,25 @@ function Get-GhCredential {
     return @{ User = $user; Pass = $pass }
 }
 
+$repoRoot = Split-Path $PSScriptRoot -Parent
 $git = Resolve-GitExe
+
+# ---- 推送前的闸门：完整回归不绿就不许推（ROADMAP 检查点要求）----
+if (-not $SkipVerify) {
+    Write-Host "=== 推送前完整回归 ===" -ForegroundColor Cyan
+    Push-Location $repoRoot
+    try {
+        & python (Join-Path $repoRoot "scripts\verify.py")
+        $verifyExit = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    if ($verifyExit -ne 0) {
+        throw "完整回归未通过（退出码 $verifyExit），已中止推送。修复后重试，或用 -SkipVerify 强行跳过（不建议）。"
+    }
+    Write-Host "回归通过，继续推送。" -ForegroundColor Green
+}
+
 $cred = Get-GhCredential
 Write-Host "使用 git : $git"
 Write-Host "使用账号: $($cred.User)"

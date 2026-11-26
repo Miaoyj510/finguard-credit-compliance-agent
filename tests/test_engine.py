@@ -133,6 +133,20 @@ class TestUnresolvedDegradation(unittest.TestCase):
                 self.assertIsNotNone(r)
 
 
+    def test_引擎内部异常标ENGINE_ERROR(self):
+        """兜底分支不得误标成 DSL_PARSE_ERROR——审计口径要能区分「规则写错」与「引擎坏了」。"""
+        import unittest.mock as mock
+
+        engine = RuleEngine()
+        rule = make_rule()
+        facts = {"monthly_revenue": 1, "declared_revenue": 2}
+        with mock.patch.object(RuleEngine, "_parse", side_effect=RuntimeError("boom")):
+            r = engine.evaluate(rule, facts)
+        self.assertIs(r.coverage, CoverageFlag.UNRESOLVED)
+        self.assertIs(r.reason_code, UnresolvedReasonCode.ENGINE_ERROR)
+        self.assertNotEqual(r.reason_code, UnresolvedReasonCode.DSL_PARSE_ERROR)
+
+
 class TestSeverityFromRule(unittest.TestCase):
     """严重度只能来自规则库，模型不得自拟（FR-AUDIT-03）。"""
 
