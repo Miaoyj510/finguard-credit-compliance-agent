@@ -69,7 +69,8 @@ SUITES: Dict[str, Dict] = {
         "slice": 3,
         "desc": "事实层双路抽取、低置信拦截与交叉核对",
         "modules": ["tests.test_facts_extract", "tests.test_facts_crosscheck",
-                    "tests.test_facts_conflict", "tests.test_facts_layer"],
+                    "tests.test_facts_conflict", "tests.test_facts_layer",
+                    "tests.test_facts_adjudication"],
     },
     "review": {
         "slice": 4,
@@ -269,16 +270,23 @@ def main() -> int:
                 "SKIP": _c("  -", YELLOW, True)}[status]
         print("%s %s" % (mark, test))
 
+    # 计数口径（评审留档 A5）：总数与成功数按**测试方法**计；
+    # subTest 失败会多次调用 addFailure，若按 failures 条数算会让「通过数」虚高，
+    # 因此失败按**去重后的方法数**统计，并单列失败断言条数。
     total = result.testsRun
-    failed = len(result.failures) + len(result.errors)
+    failed_methods = {t for t, _ in result.failures}
+    failed_methods |= {t for t, _ in result.errors}
+    failed = len(failed_methods)
+    failed_assertions = len(result.failures) + len(result.errors)
     passed = total - failed - len(result.skipped)
 
     print()
     print("-" * 78)
     if failed:
-        print(_c("结果：%d / %d 通过，%d 失败" % (passed, total, failed), RED, True))
+        print(_c("结果：%d / %d 通过，%d 个方法失败（%d 条失败断言）"
+                 % (passed, total, failed, failed_assertions), RED, True))
     else:
-        print(_c("结果：%d / %d 全部通过" % (total, total), GREEN, True))
+        print(_c("结果：%d / %d 全部通过" % (passed, total), GREEN, True))
 
     if args.verbose and result.failures:
         print()

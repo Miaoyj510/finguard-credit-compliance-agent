@@ -10,6 +10,7 @@ PRD 6.2 FR-FACT-06：冲突项**标红并列两个取值**，提交人工裁决�
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
@@ -121,6 +122,10 @@ class ConflictQueue:
             raise ValueError(
                 "裁决值 %r 不在候选列表 %r 内" % (chosen, list(item.candidates))
             )
+        # 裁决时间戳由队列统一提供（NFR-09 留痕 / 切片 6 回放需要时间戳；
+        # 评审留档 A2：此前该字段全链路可选且从未赋值）。
+        if adjudicated_at is None:
+            adjudicated_at = datetime.now(timezone.utc).isoformat()
         updated = replace(
             item,
             status=ConflictStatus.RESOLVED,
@@ -135,14 +140,29 @@ class ConflictQueue:
     def apply_resolutions(
         self, fields: Mapping[str, FactField]
     ) -> Dict[str, FactField]:
-        """把已裁决的冲突回填成**高置信**事实（来源标记为人工裁决）。"""
-        resolved_by_field: Dict[str, ConflictItem] = {}
+        """把已裁决的冲突回填成**高置信**事实（来源标记为人工裁决）。
+
+        两类冲突的语义不同，回填方式也不同（评审意见 8）：
+
+        · **LOW_CONFIDENCE**：两个候选是**同一字段的两个抽取值**（如 OCR 抽到 82 万、
+          规则校验抽到 61.5 万）→ 人工择一，覆写该字段为高置信，来源标人工裁决。
+
+        · **CROSS_CHECK**：两个候选是**两个不同的事实**（CC-01 里是「申报月营收」与
+          「近 6 月流水合计」）。它们不是同一字段的两个取值，**不能择一覆写**——
+          覆写会静默改掉「客户申报了什么」这个事实的语义，引擎拿到的口径就变了。
+          裁决的含义是「这个偏离以哪个口径为准 / 是否可接受」，因此
+          **不改写任何事实取值**，只解除该核对涉及字段的阻塞；裁决结论记在冲突项
+          与核对说明里。
+        """
+        resolved_low: Dict[str, ConflictItem] = {}
         for item in self.resolved():
-            resolved_by_field[item.field] = item
+            if item.kind is ConflictKind.CROSS_CHECK:
+                continue                      # 勾稽类冲突不改写事实取值
+            resolved_low[item.field] = item
 
         out: Dict[str, FactField] = {}
         for name, f in fields.items():
-            item = resolved_by_field.get(name)
+            item = resolved_low.get(name)
             if item is None:
                 out[name] = f
                 continue

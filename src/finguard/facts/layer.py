@@ -37,11 +37,12 @@ class FactLayer:
     """事实层。
 
     checker : 交叉核对器（可注入，便于换阈值或换实现）
-    strict  : 是否在产出前强制扫描结论词。默认 True（PRD 要求「出现结论词即失败」）。
+    产出前**恒**扫描结论词，命中即失败（PRD FR-FACT-07「出现结论词即失败」）。
+    早期版本有个 strict=False 开关，能关闭这条产品不变量，且全仓零使用——
+    已移除（评审留档 A1）：能关掉不变量的开关本身就是风险面。
     """
 
     checker: CrossChecker = CrossChecker()
-    strict: bool = True
 
     def build(self, route_a: RouteResult, route_b: RouteResult) -> Tuple[FactSet, ConflictQueue]:
         """跑完一次事实层，产出事实集 + 冲突队列。"""
@@ -116,9 +117,43 @@ class FactLayer:
                 )
             )
 
+    def _annotate_adjudicated_checks(
+        self, queue: ConflictQueue, checks: Tuple[CrossCheckResult, ...]
+    ) -> Tuple[CrossCheckResult, ...]:
+        """给已人工裁决过的勾稽项补上裁决结论（评审意见 8）。
+
+        偏离是客观事实，不因人工裁决而消失——所以 passed 保持原值，
+        只在说明里写明「谁、以哪个口径、为什么」判过。
+        """
+        resolved_checks = [
+            i for i in queue.resolved() if i.kind is ConflictKind.CROSS_CHECK
+        ]
+        if not resolved_checks:
+            return checks
+        out = []
+        for check in checks:
+            note = ""
+            for item in resolved_checks:
+                if set(check.involved_fields) & set(item.involved_fields):
+                    note = "；已由 %s 裁决：以 %s 为准，依据：%s" % (
+                        item.adjudicator, item.chosen, item.reason)
+                    break
+            if note:
+                out.append(
+                    CrossCheckResult(
+                        check_id=check.check_id,
+                        name=check.name,
+                        passed=check.passed,
+                        detail=check.detail + note,
+                        involved_fields=check.involved_fields,
+                        deviation=check.deviation,
+                    )
+                )
+            else:
+                out.append(check)
+        return tuple(out)
+
     def _enforce_conclusion_gate(self, factset: FactSet) -> None:
-        if not self.strict:
-            return
         hits = factset.conclusion_hits()
         if hits:
             raise ConclusionTermError(
@@ -149,6 +184,7 @@ class FactLayer:
             name: f.value for name, f in fields.items() if f.confidence is Confidence.HIGH
         }
         checks = self.checker.run(decision)
+        checks = self._annotate_adjudicated_checks(queue, checks)
         self._enqueue_cross_conflicts(queue, checks, decision)
         result = FactSet(
             fields=fields,
