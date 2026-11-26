@@ -49,6 +49,7 @@ class UnresolvedReasonCode(str, Enum):
     AMBIGUOUS_VERSION = "AMBIGUOUS_VERSION"    # 三键下命中多个重叠版本
     MISSING_FACT = "MISSING_FACT"              # 判定所需事实缺失
     LOW_CONFIDENCE = "LOW_CONFIDENCE"          # 事实置信度不足（切片 3 起使用）
+    CONFLICT_UNRESOLVED = "CONFLICT_UNRESOLVED"  # 事实冲突未裁决（切片 5 测量点使用）
     DSL_PARSE_ERROR = "DSL_PARSE_ERROR"        # 表达式无法解析，规则降级为未判定
     TYPE_MISMATCH = "TYPE_MISMATCH"            # 事实类型不可比 / NaN，降级为未判定
     ENGINE_ERROR = "ENGINE_ERROR"              # 引擎内部异常，降级为未判定

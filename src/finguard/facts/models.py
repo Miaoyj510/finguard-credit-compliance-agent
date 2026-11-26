@@ -10,10 +10,12 @@
 """
 from __future__ import annotations
 
+from ..domain.enums import UnresolvedReasonCode
+
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 __all__ = [
     "Confidence",
@@ -152,6 +154,10 @@ class FactSet:
     fields: Mapping[str, FactField] = field(default_factory=dict)
     pending_conflicts: Tuple[Any, ...] = ()
     checks: Tuple[Any, ...] = ()
+    # 判定链审计钩子（切片 5 SEC-01 测量点）：decision_ready() 每次被调用即通知一次，
+    # 记录"谁调用 / 哪些字段进入 / 哪些字段被拦及原因"。
+    # compare=False、repr=False：钩子不参与相等性与打印，不影响既有断言。
+    decision_audit: Optional[Callable[..., None]] = field(default=None, compare=False, repr=False)
 
     # ---------- 取值 ----------
     def get(self, name: str) -> Optional[FactField]:
@@ -165,13 +171,35 @@ class FactSet:
 
     # ---------- 闸门 ----------
     def decision_ready(self) -> Dict[str, Any]:
-        """可进入判定链的事实（低置信与未裁决冲突一律拦在外面）。"""
-        blocked = set(self.low_confidence_fields()) | set(self.unresolved_conflict_fields())
-        return {
+        """返回可以进入判定链的**高置信**事实（低置信与冲突未裁决字段一律拦在外面）。
+
+        本方法是判定链的**唯一入口**。切片 5 在这里挂审计钩子：
+        每次进入都记录调用方、进入字段、被拦字段与原因码，
+        使 PRD 指标 SEC-01（越权召回 = 0）成为**可测量**的值。
+        """
+        reasons = self.blocked_reasons()
+        blocked = set(reasons)
+        ready = {
             name: f.value
             for name, f in self.fields.items()
             if name not in blocked and f.confidence is Confidence.HIGH
         }
+        if self.decision_audit is not None:
+            self.decision_audit(
+                tuple(sorted(ready)),
+                tuple(sorted(blocked)),
+                dict(reasons),
+            )
+        return ready
+
+    def blocked_reasons(self) -> Dict[str, str]:
+        """被拦字段 -> 原因码。低置信与冲突未裁决分列两类原因。"""
+        reasons: Dict[str, str] = {}
+        for name in self.low_confidence_fields():
+            reasons[name] = UnresolvedReasonCode.LOW_CONFIDENCE.value
+        for name in self.unresolved_conflict_fields():
+            reasons.setdefault(name, UnresolvedReasonCode.CONFLICT_UNRESOLVED.value)
+        return reasons
 
     def low_confidence_fields(self) -> Tuple[str, ...]:
         return tuple(sorted(n for n, f in self.fields.items() if f.confidence is Confidence.LOW))

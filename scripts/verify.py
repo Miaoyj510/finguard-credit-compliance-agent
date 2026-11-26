@@ -80,7 +80,9 @@ SUITES: Dict[str, Dict] = {
     "harness": {
         "slice": 5,
         "desc": "状态机、Handoff 契约与三处人审闸门",
-        "modules": [],
+        "modules": ["tests.test_harness_states", "tests.test_handoff",
+                    "tests.test_gates", "tests.test_orchestrator",
+                    "tests.test_audit_probe"],
     },
     "replay": {
         "slice": 6,
@@ -207,6 +209,146 @@ def print_milestone_gate_table() -> None:
     print("-" * 78)
 
 
+def run_harness_security_probe():
+    """切片 5 安全探针：现场实测三处闸门**不可绕过、不可代签**。
+
+    这不是跑断言，而是**把绕过尝试真的打一遍**，把结果打成一张表：
+    跑的人能直接看到"我试了 5 条绕路，全部被拦"，而不是只看到一个绿色勾。
+
+    返回 (rows, ok)：
+        rows —— 每条探针一行（指标 / 口径 / 目标 / 实测 / 结论）
+        ok   —— 是否全部达标（不达标时退出码非 0）
+    """
+    from datetime import date
+
+    from finguard.agents.harness.gates import GateState, Signer
+    from finguard.agents.harness.orchestrator import Harness
+    from finguard.agents.harness.states import (
+        GateBypassError,
+        GateSignError,
+        Stage,
+        StageMutationError,
+    )
+    from finguard.domain.case import TripleKey
+    from finguard.domain.case_state import CaseFile
+
+    def make_case():
+        return CaseFile(
+            case_id="FG-PROBE-000001",
+            triple_key=TripleKey(date(2026, 10, 28), "\u5c0f\u989d\u7ecf\u8425\u8d37", "\u4e8c\u7ea7\u5206\u884c"),
+        )
+
+    def make_signer(**overrides):
+        data = dict(
+            account_id="probe-001",
+            display_name="\u63a2\u9488\u7b7e\u6838\u4eba",
+            role="\u5185\u63a7\u5408\u89c4\u5ba1\u67e5\u5c97",
+            authority_level=2,
+            authorized_case_types=("corp_credit_review",),
+            device_fingerprint="probe-fp",
+            ip="10.0.0.9",
+        )
+        data.update(overrides)
+        return Signer(**data)
+
+    rows = []
+
+    # --- 探针 1：跳过 GATE-A 直接进 S4 ---
+    h = Harness(make_case(), clock=lambda: "2026-11-26T10:00:00")
+    h.auto_advance()
+    blocked = False
+    try:
+        h.transition(Stage.S4, actor="\u7f16\u6392\u5668")
+    except GateBypassError:
+        blocked = True
+    rows.append(("SEC-03 \u95f8\u95e8\u7ed5\u884c", "\u672a\u7b7e\u6838\u5373\u8fdb\u5165\u653e\u884c\u540e\u7ee7\u72b6\u6001", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    # --- \u63a2\u9488 2\uff1a\u76f4\u63a5\u6539\u5199\u9636\u6bb5\u5b57\u6bb5 ---
+    case = make_case()
+    blocked = False
+    try:
+        case.stage = Stage.S4
+    except StageMutationError:
+        blocked = True
+    rows.append(("SEC-03 \u9636\u6bb5\u7be1\u6539", "\u76f4\u63a5\u8d4b\u503c case.stage", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    # --- \u63a2\u9488 3\uff1a\u4f2a\u9020\u5df2\u7b7e\u6838\u72b6\u6001\uff08\u65e0\u7b7e\u6838\u8bc1\u636e\uff09 ---
+    h = Harness(make_case(), clock=lambda: "2026-11-26T10:00:00")
+    h.auto_advance()
+    h.case.gates["GATE-A"]._state = GateState.APPROVED
+    blocked = False
+    try:
+        h.transition(Stage.S4, actor="\u7f16\u6392\u5668")
+    except GateBypassError:
+        blocked = True
+    rows.append(("SEC-03 \u4f2a\u9020\u72b6\u6001", "\u6539\u72b6\u6001\u5b57\u6bb5\u4f46\u65e0\u7b7e\u6838\u8bc1\u636e", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    # --- \u63a2\u9488 4\uff1a\u6279\u91cf\u5bfc\u5165\u5f0f\u4ee3\u7b7e ---
+    h = Harness(make_case(), clock=lambda: "2026-11-26T10:00:00")
+    h.auto_advance()
+    blocked = False
+    try:
+        h.sign_gate("GATE-A", signer=make_signer(batch_mode=True))
+    except GateSignError:
+        blocked = True
+    rows.append(("SEC-04 \u4ee3\u7b7e\u5c1d\u8bd5", "\u6279\u91cf\u5bfc\u5165\u5f0f\u7b7e\u6838", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    # --- \u63a2\u9488 5\uff1a\u89c4\u5219\u53d1\u5e03\u4eba\u4ee3\u7b7e ---
+    h = Harness(make_case(), clock=lambda: "2026-11-26T10:00:00")
+    h.auto_advance()
+    blocked = False
+    try:
+        h.sign_gate("GATE-A", signer=make_signer(is_rule_author=True))
+    except GateSignError:
+        blocked = True
+    rows.append(("SEC-04 \u804c\u8d23\u5206\u79bb", "\u89c4\u5219\u53d1\u5e03\u4eba\u7b7e\u6838", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    # --- \u63a2\u9488 6\uff1a\u8d85\u65f6\u540e\u81ea\u52a8\u653e\u884c ---
+    h = Harness(make_case(), clock=lambda: "2026-11-26T10:00:00")
+    h.auto_advance()
+    h.escalate_overdue("2026-11-28T10:00:00")
+    blocked = False
+    try:
+        h.transition(Stage.S4, actor="\u7f16\u6392\u5668")
+    except GateBypassError:
+        blocked = True
+    pending = h.case.gates["GATE-A"].state is GateState.PENDING
+    rows.append(("FR-GATE-04 \u8d85\u65f6\u4e0d\u653e\u884c", "\u8d85\u65f6\u5347\u7ea7\u540e\u4ecd\u4e0d\u653e\u884c", "0",
+                 ("\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a") + ("\uff08\u4ecd\u4e3a PENDING\uff09" if pending else ""),
+                 blocked and pending))
+
+    ok = all(row[4] for row in rows)
+    return rows, ok
+
+
+def _pad(text, width):
+    """按**显示宽度**左对齐补空格（中文算 2 格），让表格列对齐。"""
+    import unicodedata
+    size = sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in text)
+    return text + " " * max(1, width - size)
+
+
+def print_security_probe_rows(rows, ok) -> None:
+    print()
+    print(_c("\u5b89\u5168\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 5\uff1a\u4e09\u5904\u4eba\u5ba1\u95f8\u95e8\uff09", BOLD, True))
+    print("-" * 78)
+    header = ("\u6307\u6807", "\u53e3\u5f84", "\u76ee\u6807", "\u5b9e\u6d4b", "\u7ed3\u8bba")
+    print(_pad(header[0], 20) + _pad(header[1], 42) + _pad(header[2], 8)
+          + _pad(header[3], 26) + header[4])
+    for name, caliber, target, actual, passed in rows:
+        verdict = _c("\u8fbe\u6807", GREEN, True) if passed else _c("\u4e0d\u8fbe\u6807", RED, True)
+        print(_pad(name, 20) + _pad(caliber, 42) + _pad(target, 8)
+              + _pad(actual, 26) + verdict)
+    print("-" * 78)
+    print(_c("\u63a2\u9488\u7ed3\u8bba\uff1a\u5168\u90e8\u62e6\u622a" if ok else "\u63a2\u9488\u7ed3\u8bba\uff1a\u5b58\u5728\u672a\u62e6\u622a\u7684\u7ed5\u8def\uff01",
+             GREEN if ok else RED, True))
+
+
 def main() -> int:
     _reconfigure_streams()
     ap = argparse.ArgumentParser(description="FinGuard 验证入口")
@@ -301,6 +443,11 @@ def main() -> int:
 
     if args.checkpoint == "milestone":
         print_milestone_gate_table()
+        probe_rows, probe_ok = run_harness_security_probe()
+        print_security_probe_rows(probe_rows, probe_ok)
+        if not probe_ok:
+            print(_c("\u5b89\u5168\u63a2\u9488\u672a\u8fbe\u6807\uff1a\u4e0d\u5f97\u8fdb\u5165\u4e0b\u4e00\u68c0\u67e5\u70b9\u3002", RED, True))
+            failed = failed or 1
 
     print()
     print("检查点建议：改完任何一层都跑一次；切片的验收标准见 docs/ROADMAP.md。")
