@@ -57,7 +57,13 @@ class CitationGate:
 
     REQUIRED = ("rule_id", "rule_version", "fact_refs")
 
-    def check(self, draft: OpinionDraft, evaluation: Evaluation) -> Tuple[str, ...]:
+    def check(
+        self,
+        draft: OpinionDraft,
+        evaluation: Evaluation,
+        *,
+        rule: Optional[Rule] = None,
+    ) -> Tuple[str, ...]:
         missing: List[str] = []
         if not draft.rule_id:
             missing.append("rule_id")
@@ -70,6 +76,10 @@ class CitationGate:
         need = set(evaluation.fact_refs)
         if need and not need.issubset(set(draft.fact_refs)):
             missing.append("fact_refs")
+        # 制度条款类依据须附原文片段（PRD 8.1 quote_required）。
+        # 规则显式声明 quote_required 时，quotes 为空即视为依据不完整。
+        if rule is not None and getattr(rule, "quote_required", False) and not draft.quotes:
+            missing.append("quotes")
         return tuple(missing)
 
 
@@ -236,17 +246,28 @@ class Auditor:
         factset: Any,
         rules: Mapping[str, Rule],
         quotes: Optional[Mapping[str, Tuple[str, ...]]] = None,
+        *,
+        case_id: Optional[str] = None,
+        bound_rule_total: Optional[int] = None,
     ) -> OpinionBuildResult:
         """把判定结果转成结构化意见。
 
-        evaluations : 判定结果序列（切片 2 的 Evaluation）
-        factset     : 事实集（切片 3 的 FactSet）——决定哪些事实可被引用
-        rules       : {"rule_id@version": Rule}，用于取权威严重度与出处
-        quotes      : {"rule_id@version": ("原文片段", ...)}，可选
+        evaluations      : 判定结果序列（切片 2 的 Evaluation）
+        factset          : 事实集（切片 3 的 FactSet）——决定哪些事实可被引用
+        rules            : {"rule_id@version": Rule}，用于取权威严重度与出处
+        quotes           : {"rule_id@version": ("原文片段", ...)}，可选
+        case_id          : 案件号。**给了就用它编意见编号**（OP-<case_id>-<seq>），
+                          否则退回旧格式并在同一次 build 内去重（评审意见 5）。
+        bound_rule_total : 本案实际绑定的规则条数，用于覆盖度交叉校验（评审留档 A4）。
+
+        事实集只取一次 decision_ready()：判定链入口每次进入都会被审计钩子记录
+        （切片 5 SEC-01），重复调用会把"进入判定链次数"放大成噪声。
         """
         quotes = quotes or {}
-        ready = set(factset.decision_ready().keys())
+        ready_map = factset.decision_ready()
+        ready = set(ready_map.keys())
         bound_keys = tuple(sorted(rules.keys()))
+        used_ids: set = set()
 
         opinions: List[ReviewOpinion] = []
         blocked: List[BlockedOpinion] = []
@@ -279,7 +300,7 @@ class Auditor:
             judged += 1
 
             # --- 生成草稿 ---
-            facts = factset.decision_ready()
+            facts = ready_map
             draft = self.writer(rule, evaluation, facts) if rule is not None else OpinionDraft(
                 rule_id=evaluation.rule_id,
                 rule_version=evaluation.rule_version,
@@ -289,7 +310,7 @@ class Auditor:
             )
 
             # --- 引用三件套闸门（FR-AUDIT-07）---
-            missing = self.gate.check(draft, evaluation)
+            missing = self.gate.check(draft, evaluation, rule=rule)
             if missing:
                 blocked.append(
                     BlockedOpinion(
@@ -345,9 +366,24 @@ class Auditor:
                 value = eval_values[ref] if ref in eval_values else facts.get(ref)
                 citations.append(FactCitation(field_path=ref, value=value, source_channel=channels))
 
+            # --- 意见编号（评审意见 5）---
+            # 有 case_id：OP-<case_id>-<seq>，案件内唯一，卷宗可直接按它建键。
+            # 无 case_id：退回 OP-<rule_id>-<version>，但同一次 build 内重复时补序号，
+            # 杜绝"同号静默覆盖"。
+            if case_id:
+                opinion_id = "OP-%s-%03d" % (case_id, len(opinions) + 1)
+            else:
+                base_id = "OP-%s-%s" % (draft.rule_id, draft.rule_version)
+                opinion_id = base_id
+                dup = 2
+                while opinion_id in used_ids:
+                    opinion_id = "%s-%d" % (base_id, dup)
+                    dup += 1
+            used_ids.add(opinion_id)
+
             opinions.append(
                 ReviewOpinion(
-                    opinion_id="OP-%s-%s" % (draft.rule_id, draft.rule_version),
+                    opinion_id=opinion_id,
                     rule_id=draft.rule_id,
                     rule_version=draft.rule_version,
                     severity=severity,
@@ -367,6 +403,7 @@ class Auditor:
             unresolved=unresolved_count,
             total=len(evaluations),
             unresolved_entries=tuple(unresolved),
+            bound_rule_total=bound_rule_total,
         )
         return OpinionBuildResult(
             opinions=tuple(opinions),

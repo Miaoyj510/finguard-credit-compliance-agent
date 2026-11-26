@@ -36,6 +36,9 @@ class Rule:
     required_facts: Tuple[str, ...] = ()
     source_ref: str = ""
     description: str = ""
+    # 该规则的依据是否必须附原文片段（PRD 8.1 citation_requirement.quote_required）。
+    # 默认 False：制度条款类依据可标 True，引用闸门据此要求 quotes 非空。
+    quote_required: bool = False
 
     # ---------------- 构造期校验（FR-RAG-03 必填字段） ----------------
     def __post_init__(self) -> None:
@@ -128,4 +131,5 @@ class Rule:
             "required_facts": list(self.required_facts),
             "source_ref": self.source_ref,
             "description": self.description,
+            "quote_required": self.quote_required,
         }

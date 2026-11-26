@@ -164,17 +164,32 @@ class UnresolvedEntry:
 
 @dataclass(frozen=True)
 class CoverageSummary:
-    """覆盖度三类计数。自洽条件：三类之和 == 规则总数（每条规则有且仅归入一类）。"""
+    """覆盖度三类计数。自洽条件：三类之和 == 规则总数（每条规则有且仅归入一类）。
+
+    **口径提醒（评审留档 A1）**：``judged`` 计的是**引擎判定数**，
+    因此 ``judged`` 通常 **大于** ``len(opinions)``——被引用闸门或禁止行为
+    拦下的意见**不进 opinions**，但它仍然是"已判定"的规则条目。
+    两个数字口径不同，比较时不要混用。
+
+    ``bound_rule_total`` 是本案实际绑定的规则条数（切片 5 A4 交叉校验）：
+    与 ``total`` 不一致即说明判定集合与规则绑定集合对不上，``is_consistent`` 判否。
+    """
 
     judged: int = 0
     not_applicable: int = 0
     unresolved: int = 0
     total: int = 0
     unresolved_entries: Tuple[UnresolvedEntry, ...] = ()
+    # 本案实际绑定的规则条数（切片 5 A4）：与 total 不一致说明判定集合与规则集合对不上。
+    bound_rule_total: Optional[int] = None
 
     @property
     def is_consistent(self) -> bool:
-        return self.judged + self.not_applicable + self.unresolved == self.total
+        if self.judged + self.not_applicable + self.unresolved != self.total:
+            return False
+        if self.bound_rule_total is not None and self.bound_rule_total != self.total:
+            return False
+        return True
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -182,6 +197,7 @@ class CoverageSummary:
             "not_applicable": self.not_applicable,
             "unresolved": self.unresolved,
             "total": self.total,
+            "bound_rule_total": self.bound_rule_total,
             "is_consistent": self.is_consistent,
             "unresolved_entries": [e.to_dict() for e in self.unresolved_entries],
         }
