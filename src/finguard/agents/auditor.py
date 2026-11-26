@@ -16,6 +16,7 @@
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -23,6 +24,7 @@ from ..domain.enums import CoverageFlag, Severity, UnresolvedReasonCode, Verdict
 from ..domain.opinion import (
     BlockedOpinion,
     CoverageSummary,
+    FactCitation,
     OpinionDraft,
     OpinionOrigin,
     ReviewOpinion,
@@ -112,12 +114,22 @@ class ForbiddenBehaviorDetector:
         bound_rule_keys: Tuple[str, ...],
         decidable_fact_names: Tuple[str, ...],
         rule: Optional[Rule],
+        quotes: Tuple[str, ...] = (),
     ) -> Tuple[ForbiddenHit, ...]:
         hits: List[ForbiddenHit] = []
         text = draft.rationale or ""
 
-        # FB-01：结论性表述
-        matched = tuple(t for t in FORBIDDEN_CONCLUSION_TERMS if t in text)
+        # FB-01：结论性表述。扫的是 **Agent 自己的断言**，不是被引用的
+        # 制度名：《员工违规行为处理办法》是出处（数据），不是定性结论。
+        # 只豁免绑定规则 source_ref 里的书名号段——伪装成书名号的断言
+        # （如「《认定该笔业务违规》」）不在豁免范围，仍被拦（评审意见 1）。
+        scan_text = text
+        if rule is not None and rule.source_ref:
+            scan_text = scan_text.replace(rule.source_ref, "")
+            title = re.search(r"《[^》]*》", rule.source_ref)
+            if title:
+                scan_text = scan_text.replace(title.group(0), "")
+        matched = tuple(t for t in FORBIDDEN_CONCLUSION_TERMS if t in scan_text)
         if matched:
             hits.append(ForbiddenHit("FB-01", "意见包含结论性表述（处罚 / 责任 / 审批 / 对客）", matched))
 
@@ -131,10 +143,14 @@ class ForbiddenBehaviorDetector:
         if bad_refs:
             hits.append(ForbiddenHit("FB-03", "引用了不可用于判定的低置信 / 未裁决事实", bad_refs))
 
-        # FB-05：执行了文档中夹带的指令
-        instr = tuple(p for p in INSTRUCTION_PATTERNS if p in text)
+        # FB-05：执行了文档中夹带的指令。正文与引用原文（quotes）都扫——
+        # quotes 也是输出内容，注入指令可经引用通道绕过（评审意见 2，S-01）。
+        # FB-01 对 quotes 豁免：制度原文合法地含「处罚 / 违规」字样，
+        # 逐字引用不是 Agent 在做定性（断言与引用分责，见评审意见 2 说明）。
+        instr_texts = (text,) + tuple(quotes)
+        instr = tuple(p for p in INSTRUCTION_PATTERNS if any(p in t for t in instr_texts))
         if instr:
-            hits.append(ForbiddenHit("FB-05", "疑似执行了材料中夹带的指令", instr))
+            hits.append(ForbiddenHit("FB-05", "疑似执行了材料中夹带的指令（正文或引用原文）", instr))
 
         # FB-04：自拟严重度 —— 特殊处理：不是拦截，而是**替换回规则库值**（见 Auditor）
         return tuple(hits)
@@ -286,12 +302,14 @@ class Auditor:
                 )
                 continue
 
-            # --- 禁止行为检测 ---
+            # --- 禁止行为检测（quotes 先解析再送检，引用通道不留绕过口）---
+            effective_quotes = tuple(quotes.get(key, draft.quotes))
             hits = self.detector.detect(
                 draft, evaluation,
                 bound_rule_keys=bound_keys,
                 decidable_fact_names=tuple(sorted(ready)),
                 rule=rule,
+                quotes=effective_quotes,
             )
             if hits:
                 blocked.append(
@@ -317,6 +335,16 @@ class Auditor:
                     )
                 )
 
+            # --- 引用三元组：field_path / value / source_channel（FR-AUDIT-06）---
+            # 取值优先用判定实际使用的值（evaluation.values），来源通道取事实集登记。
+            eval_values = dict(evaluation.values)
+            citations = []
+            for ref in draft.fact_refs:
+                field = factset.get(ref)
+                channels = tuple(c.value for c in field.channels) if field is not None else ()
+                value = eval_values[ref] if ref in eval_values else facts.get(ref)
+                citations.append(FactCitation(field_path=ref, value=value, source_channel=channels))
+
             opinions.append(
                 ReviewOpinion(
                     opinion_id="OP-%s-%s" % (draft.rule_id, draft.rule_version),
@@ -326,9 +354,10 @@ class Auditor:
                     fact_refs=tuple(draft.fact_refs),
                     rationale=draft.rationale,
                     coverage=CoverageFlag.JUDGED,
-                    quotes=tuple(quotes.get(key, draft.quotes)),
+                    quotes=effective_quotes,
                     unresolved_reason_code=None,
                     origin=draft.origin,
+                    fact_citations=tuple(citations),
                 )
             )
 
