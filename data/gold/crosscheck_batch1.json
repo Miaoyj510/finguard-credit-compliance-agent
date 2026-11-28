@@ -1,0 +1,2004 @@
+{
+  "cases_agree": 30,
+  "cases_compared": 30,
+  "gold_file": "data\\gold\\eval_rev_batch1.json",
+  "gold_version": "0.1.0-draft",
+  "role": "标注人 A · 系统输出作对照（规范书 v1 第 0 节）",
+  "rows": [
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-001",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-002",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "miss",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-003",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-013",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "version": "2.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "severity": "重大",
+            "verdict": "hit",
+            "version": "2.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-004",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-013",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "version": "2.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "severity": "重大",
+            "verdict": "miss",
+            "version": "2.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-005",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-013",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "version": "2.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "severity": "重大",
+            "verdict": "hit",
+            "version": "2.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-006",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-007",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "3.2.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-008",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 5
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": "MISSING_FACT",
+            "rule_id": "R-CR-013",
+            "severity": null,
+            "verdict": "unresolved",
+            "version": "3.2.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-009",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-010",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "3.2.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-011",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-012",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-013",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 5
+        },
+        "verdicts": []
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-013",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-013",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "version": "2.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-030",
+            "severity": "重大",
+            "verdict": "hit",
+            "version": "2.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-014",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "对公信贷",
+      "case_id": "GOLD-REV-015",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "3.2.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-016",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-017",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "miss",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "hit",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-018",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.1.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "version": "1.0.0"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 4,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 1
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.1.0"
+          },
+          {
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-019",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.1.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "version": "1.0.0"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": "MISSING_FACT",
+            "rule_id": "R-CR-021",
+            "severity": null,
+            "verdict": "unresolved",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.1.0"
+          },
+          {
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-020",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 4
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-021",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "version": "1.0.0"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 4,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 1
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "miss",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "1.0.0"
+          },
+          {
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-022",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "version": "1.0.0"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": "MISSING_FACT",
+            "rule_id": "R-CR-041",
+            "severity": null,
+            "verdict": "unresolved",
+            "version": "1.0.0"
+          },
+          {
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-050",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-023",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.1.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.1.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "小额经营贷",
+      "case_id": "GOLD-REV-024",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "hit",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "跨版本过渡",
+      "case_id": "GOLD-REV-025",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 3
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "关注",
+            "verdict": "hit",
+            "version": "3.0.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "跨版本过渡",
+      "case_id": "GOLD-REV-026",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 3
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "hit",
+            "version": "1.4.1"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "跨版本过渡",
+      "case_id": "GOLD-REV-027",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.1.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 2
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "miss",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "1.1.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "边界/冲突",
+      "case_id": "GOLD-REV-028",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-041",
+            "version": "1.1.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 3
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "hit",
+            "version": "1.4.1"
+          },
+          {
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": "MISSING_FACT",
+            "rule_id": "R-CR-041",
+            "severity": null,
+            "verdict": "unresolved",
+            "version": "1.1.0"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "边界/冲突",
+      "case_id": "GOLD-REV-029",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.2.0"
+          },
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "version": "1.4.1"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 3
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "severity": "重要",
+            "verdict": "hit",
+            "version": "3.2.0"
+          },
+          {
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null,
+            "rule_id": "R-CR-021",
+            "severity": "提示",
+            "verdict": "miss",
+            "version": "1.4.1"
+          }
+        ]
+      }
+    },
+    {
+      "bucket": "边界/冲突",
+      "case_id": "GOLD-REV-030",
+      "diffs": [],
+      "system": {
+        "binding": [
+          {
+            "basis": "三键唯一命中",
+            "reason_code": null,
+            "rule_id": "R-CR-013",
+            "version": "3.0.0"
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-021",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-030",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-041",
+            "version": null
+          },
+          {
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH",
+            "rule_id": "R-CR-050",
+            "version": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "total": 5,
+          "unresolved": 5
+        },
+        "verdicts": [
+          {
+            "fact_refs": [
+              "monthly_revenue",
+              "declared_revenue"
+            ],
+            "reason_code": "MISSING_FACT",
+            "rule_id": "R-CR-013",
+            "severity": null,
+            "verdict": "unresolved",
+            "version": "3.0.0"
+          }
+        ]
+      }
+    }
+  ],
+  "total_diffs": 0
+}

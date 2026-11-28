@@ -1,0 +1,2650 @@
+{
+  "eval_set": "EVAL-REV",
+  "batch": 1,
+  "gold_version": "0.1.0-draft",
+  "guide_version": "v1",
+  "annotator": "agent-b（独立标注）",
+  "annotated_at": "2026-11-28",
+  "bucket_quota": {
+    "对公信贷": 15,
+    "小额经营贷": 9,
+    "跨版本过渡": 3,
+    "边界/冲突": 3
+  },
+  "rule_store": "src/finguard/rules/seeds.py（合成规则，5 个 rule_id）",
+  "cases": [
+    {
+      "case_id": "GOLD-REV-001",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2024-05-10",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 800000,
+        "declared_revenue": 900000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "历史时点取旧版；其余四条因产品/时间不适用入须人工判定池",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "monthly_revenue",
+          "value": 800000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        },
+        {
+          "field": "declared_revenue",
+          "value": 900000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-002",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2024-11-20",
+        "product_type": "对公流贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 950000,
+        "declared_revenue": 900000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "流水高于申报，勾稽规则不命中",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-003",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-03-15",
+        "product_type": "大额授信",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "loan_amount": 6000000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "verdict": "hit",
+            "severity": "重大",
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "大额授信产品：仅 R-CR-030 适用，其余四条产品范围排除入须人工判定池",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "loan_amount",
+          "value": 6000000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-004",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-03-15",
+        "product_type": "大额授信",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "loan_amount": 4000000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "大额授信阈值下负例（400 万 < 500 万）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-005",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-01-01",
+        "product_type": "大额授信",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "loan_amount": 5000001
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "verdict": "hit",
+            "severity": "重大",
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "R-CR-030 生效区间左闭边界日：超阈值 1 元命中重大",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-006",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-06-30",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 600000,
+        "declared_revenue": 850000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "右开边界前一天仍取 3.0.0（关注），与次日 3.2.0（重要）构成边界对",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-007",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2026-02-01",
+        "product_type": "对公流贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 900000,
+        "declared_revenue": 880000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "勾稽不命中的干净负例（对公流贷产品下 R-CR-030 不适用）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-008",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2026-02-01",
+        "product_type": "对公流贷",
+        "org_level": "一级分行"
+      },
+      "facts": {},
+      "missing_facts": [
+        "declared_revenue",
+        "monthly_revenue"
+      ],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "unresolved",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": "MISSING_FACT"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "unresolved": 5,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "勾稽双字段全缺→整条未判定带 MISSING_FACT（引擎不猜）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-009",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-10-05",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 500000,
+        "declared_revenue": 1200000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "偏离幅度大的正例",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-010",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-10-05",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 1100000,
+        "declared_revenue": 1000000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "流水高于申报的负例（与 009 同三键反事实）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-011",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2024-01-01",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 100000,
+        "declared_revenue": 200000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "R-CR-013 生效区间左闭边界日",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-012",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2023-12-31",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 100000,
+        "declared_revenue": 200000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "unresolved": 5,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "早于全部规则生效日：五条全入须人工判定池，不得回退最新版",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-013",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-05-20",
+        "product_type": "大额授信",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "loan_amount": 5200000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-030",
+            "version": "2.0.0",
+            "verdict": "hit",
+            "severity": "重大",
+            "fact_refs": [
+              "loan_amount"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "大额授信超权限命中重大（CRITICAL 档唯一覆盖件）",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "loan_amount",
+          "value": 5200000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-014",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2025-05-20",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 640000,
+        "declared_revenue": 810000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "2025-07-01 前取 3.0.0（关注档）",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "monthly_revenue",
+          "value": 640000,
+          "category": "双路不一致",
+          "channel_a_value": 640000,
+          "channel_b_value": 615000,
+          "agree": false
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-015",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "对公信贷",
+      "triple_key": {
+        "business_date": "2026-06-30",
+        "product_type": "对公流贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 990000,
+        "declared_revenue": 980000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "勾稽阈值边界负例（相等不命中，< 为严格小于）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-016",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2025-02-10",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 300000,
+        "declared_revenue": 400000,
+        "tenor_months": 24,
+        "industry": "制造业"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "小额三规则适用；41 取重叠前唯一版",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "tenor_months",
+          "value": 24,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-017",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2025-02-10",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 500000,
+        "declared_revenue": 480000,
+        "tenor_months": 48,
+        "industry": "房地产"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "hit",
+            "severity": "提示",
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "期限与行业双命中（提示+重要）",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-018",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2026-03-01",
+        "product_type": "小额经营贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 200000,
+        "declared_revenue": 260000,
+        "tenor_months": 36,
+        "industry": "房地产",
+        "branch_count": 3
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 4,
+          "not_applicable": 0,
+          "unresolved": 1,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "一级分行使 R-CR-050 进入适用集；四判定一未判定",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "branch_count",
+          "value": 3,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        },
+        {
+          "field": "industry",
+          "value": "房地产",
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-019",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2026-03-01",
+        "product_type": "小额经营贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 200000,
+        "declared_revenue": 260000,
+        "industry": "房地产",
+        "branch_count": 1
+      },
+      "missing_facts": [
+        "tenor_months"
+      ],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "unresolved",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": "MISSING_FACT"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "期限缺失单条未判定，不影响其余三条",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-020",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2024-06-15",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 150000,
+        "declared_revenue": 190000
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 1,
+          "not_applicable": 0,
+          "unresolved": 4,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "2025 年前的三条小额专属规则全部时间不适用",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-021",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2025-04-01",
+        "product_type": "小额经营贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 410000,
+        "declared_revenue": 400000,
+        "tenor_months": 12,
+        "industry": "餐饮业",
+        "branch_count": 2
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 4,
+          "not_applicable": 0,
+          "unresolved": 1,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "四判定：仅跨机构上报命中",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "monthly_revenue",
+          "value": 410000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-022",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2025-04-01",
+        "product_type": "小额经营贷",
+        "org_level": "一级分行"
+      },
+      "facts": {
+        "monthly_revenue": 300000,
+        "declared_revenue": 360000,
+        "tenor_months": 20,
+        "branch_count": 1
+      },
+      "missing_facts": [
+        "industry"
+      ],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "verdict": "unresolved",
+            "severity": null,
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": "MISSING_FACT"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": "1.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "branch_count"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "行业字段缺失→41 未判定",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "industry",
+          "value": null,
+          "category": "跨渠道缺失",
+          "channel_a": "ocr",
+          "channel_b": null
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-023",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2026-08-08",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 260000,
+        "declared_revenue": 330000,
+        "tenor_months": 30,
+        "industry": "房地产"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "重叠窗口结束后 41 唯一取 1.1.0",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "declared_revenue",
+          "value": 330000,
+          "category": "双路不一致",
+          "channel_a_value": 330000,
+          "channel_b_value": 305000,
+          "agree": false
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-024",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "小额经营贷",
+      "triple_key": {
+        "business_date": "2025-01-01",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 180000,
+        "declared_revenue": 220000,
+        "tenor_months": 40,
+        "industry": "制造业"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "hit",
+            "severity": "提示",
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.0.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "21/41 生效左闭边界日；50 尚未生效",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-025",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "跨版本过渡",
+      "triple_key": {
+        "business_date": "2025-06-30",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 250000,
+        "declared_revenue": 310000,
+        "tenor_months": 24
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "hit",
+            "severity": "关注",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "unresolved": 3,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "13 旧版最后一天 + 41 重叠窗口内须人工判定",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-026",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "跨版本过渡",
+      "triple_key": {
+        "business_date": "2025-07-01",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 250000,
+        "declared_revenue": 310000,
+        "tenor_months": 40
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "hit",
+            "severity": "提示",
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "unresolved": 3,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "与 025 同事实隔一天：13 升版升严重度、41 仍重叠——版本选择跟业务日走",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "monthly_revenue",
+          "value": 250000,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        },
+        {
+          "field": "tenor_months",
+          "value": 40,
+          "category": "双路一致",
+          "channel_a": "ocr",
+          "channel_b": "api",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-027",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "跨版本过渡",
+      "triple_key": {
+        "business_date": "2026-01-01",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 480000,
+        "declared_revenue": 470000,
+        "tenor_months": 30,
+        "industry": "房地产"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 3,
+          "not_applicable": 0,
+          "unresolved": 2,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "重叠窗口结束后第一天：41 唯一命中 1.1.0",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-028",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "边界/冲突",
+      "triple_key": {
+        "business_date": "2025-12-31",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 210000,
+        "declared_revenue": 280000,
+        "tenor_months": 60
+      },
+      "missing_facts": [
+        "industry"
+      ],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "hit",
+            "severity": "提示",
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": "1.1.0",
+            "verdict": "unresolved",
+            "severity": null,
+            "fact_refs": [
+              "industry"
+            ],
+            "reason_code": "MISSING_FACT"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "unresolved": 3,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "右开边界日：v1.0.0 于 12-31 已失效、唯一取 v1.1.0（非重叠）；行业事实缺失使该条未判定——边界与缺事实双重考点",
+      "eval_fact_subset": false
+    },
+    {
+      "case_id": "GOLD-REV-029",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "边界/冲突",
+      "triple_key": {
+        "business_date": "2025-07-15",
+        "product_type": "小额经营贷",
+        "org_level": "二级分行"
+      },
+      "facts": {
+        "monthly_revenue": 320000,
+        "declared_revenue": 410000,
+        "tenor_months": 24,
+        "industry": "房地产"
+      },
+      "missing_facts": [],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "AMBIGUOUS_VERSION"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.2.0",
+            "verdict": "hit",
+            "severity": "重要",
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": "1.4.1",
+            "verdict": "miss",
+            "severity": null,
+            "fact_refs": [
+              "tenor_months"
+            ],
+            "reason_code": null
+          }
+        ],
+        "coverage_prd": {
+          "judged": 2,
+          "not_applicable": 0,
+          "unresolved": 3,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "冲突件：行业事实齐备但规则版本重叠——人裁版本前不得判",
+      "eval_fact_subset": true,
+      "field_samples": [
+        {
+          "field": "monthly_revenue",
+          "paired_field": "declared_revenue",
+          "value": 320000,
+          "paired_value": 410000,
+          "category": "勾稽冲突"
+        }
+      ]
+    },
+    {
+      "case_id": "GOLD-REV-030",
+      "eval_set": "EVAL-REV",
+      "batch": 1,
+      "bucket": "边界/冲突",
+      "triple_key": {
+        "business_date": "2024-06-01",
+        "product_type": "小额经营贷",
+        "org_level": "一级分行"
+      },
+      "facts": {},
+      "missing_facts": [
+        "declared_revenue",
+        "monthly_revenue"
+      ],
+      "gold": {
+        "binding": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "basis": "三键唯一命中",
+            "reason_code": null
+          },
+          {
+            "rule_id": "R-CR-021",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-030",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-041",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          },
+          {
+            "rule_id": "R-CR-050",
+            "version": null,
+            "basis": "须人工判定",
+            "reason_code": "NO_VERSION_MATCH"
+          }
+        ],
+        "verdicts": [
+          {
+            "rule_id": "R-CR-013",
+            "version": "3.0.0",
+            "verdict": "unresolved",
+            "severity": null,
+            "fact_refs": [
+              "declared_revenue",
+              "monthly_revenue"
+            ],
+            "reason_code": "MISSING_FACT"
+          }
+        ],
+        "coverage_prd": {
+          "judged": 0,
+          "not_applicable": 0,
+          "unresolved": 5,
+          "total": 5
+        }
+      },
+      "annotator": "agent-b",
+      "annotated_at": "2026-11-28",
+      "guide_version": "v1",
+      "note": "全缺事实 + 时间缺口叠加：零判定五未判定，系统必须全停问人",
+      "eval_fact_subset": false
+    }
+  ]
+}

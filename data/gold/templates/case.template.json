@@ -1,0 +1,30 @@
+{
+  "case_id": "GOLD-REV-000",
+  "eval_set": "EVAL-REV",
+  "batch": 1,
+  "bucket": "对公信贷 | 小额经营贷 | 跨版本过渡 | 边界/冲突",
+  "triple_key": {
+    "business_date": "YYYY-MM-DD（业务发生日/放款日，版本按此取，左闭右开）",
+    "product_type": "对公流贷 | 小额经营贷 | 大额授信",
+    "org_level": "一级分行 | 二级分行"
+  },
+  "facts": { "字段名": "高置信 ground truth 值" },
+  "missing_facts": ["显式声明的缺失字段"],
+  "gold": {
+    "binding": [
+      { "rule_id": "R-CR-013", "version": "3.2.0 或 null", "basis": "三键唯一命中 | 须人工判定", "reason_code": "null | NO_VERSION_MATCH | AMBIGUOUS_VERSION" }
+    ],
+    "verdicts": [
+      { "rule_id": "R-CR-013", "version": "3.2.0", "verdict": "hit | miss | not_applicable | unresolved", "severity": "hit 时必填：重大|重要|关注|提示；其余 null", "fact_refs": ["表达式引用字段"], "reason_code": "unresolved 时必填" }
+    ],
+    "coverage_prd": { "judged": 0, "not_applicable": 0, "unresolved": 0, "total": 0 }
+  },
+  "eval_fact_subset": false,
+  "field_samples": [
+    { "field": "字段名", "value": "真值", "category": "双路一致 | 双路不一致 | 跨渠道缺失 | 勾稽冲突" }
+  ],
+  "annotator": "agent-b",
+  "annotated_at": "YYYY-MM-DD",
+  "guide_version": "v1",
+  "note": "本件考点一句话（边界日/缺事实/范围排除/重叠…）"
+}
