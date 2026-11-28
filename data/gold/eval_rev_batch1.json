@@ -1368,7 +1368,9 @@
         "declared_revenue": 260000,
         "tenor_months": 36,
         "industry": "房地产",
-        "branch_count": 3
+        "branch_count": 3,
+        "approval_limit": 500000,
+        "approver_authority": 300000
       },
       "missing_facts": [],
       "gold": {
@@ -1457,7 +1459,7 @@
       "annotator": "agent-b",
       "annotated_at": "2026-11-28",
       "guide_version": "v1",
-      "note": "一级分行使 R-CR-050 进入适用集；四判定一未判定",
+      "note": "一级分行使 R-CR-050 进入适用集；四判定一未判定；授权额度勾稽字段对样本（Q-08 补样规格 B1-006）",
       "eval_fact_subset": true,
       "field_samples": [
         {
@@ -1475,6 +1477,13 @@
           "channel_a": "ocr",
           "channel_b": "api",
           "agree": true
+        },
+        {
+          "field": "approval_limit",
+          "paired_field": "approver_authority",
+          "value": 500000,
+          "paired_value": 300000,
+          "category": "勾稽冲突"
         }
       ]
     },
@@ -2491,7 +2500,8 @@
         "monthly_revenue": 320000,
         "declared_revenue": 410000,
         "tenor_months": 24,
-        "industry": "房地产"
+        "industry": "房地产",
+        "flow_6m_total": 615000
       },
       "missing_facts": [],
       "gold": {
@@ -2560,13 +2570,13 @@
       "annotator": "agent-b",
       "annotated_at": "2026-11-28",
       "guide_version": "v1",
-      "note": "冲突件：行业事实齐备但规则版本重叠——人裁版本前不得判",
+      "note": "冲突件：行业事实齐备但规则版本重叠——人裁版本前不得判；事实层勾稽字段对样本（Q-08 补样规格 B1-006）",
       "eval_fact_subset": true,
       "field_samples": [
         {
-          "field": "monthly_revenue",
+          "field": "flow_6m_total",
           "paired_field": "declared_revenue",
-          "value": 320000,
+          "value": 615000,
           "paired_value": 410000,
           "category": "勾稽冲突"
         }

@@ -66,6 +66,16 @@
 3. **A-01 裁决与金标一致**——覆盖度按 PRD 口径（绑定级须人工判定计入未判定），
    与 B 的 `coverage_prd` 逐件吻合。
 
+### B1-006 — 金标修订：勾稽冲突样本改用事实层勾稽字段对（已修，未冻结批次内修订）
+
+Q-08 拍板（HANDOFF 切片 8.1「评审方对五口径的拍板」#1）指出缺样根因之一在 B 线金标：
+首批 field_samples 的「勾稽冲突」类误用**规则层**字段对（monthly_revenue × declared_revenue，
+那是 R-CR-013 的 DSL 字段），而事实层勾稽核对的字段对是 PRD 8.3 的
+`flow_6m_total × declared_revenue` 与 `approval_limit × approver_authority`。
+修订：GOLD-REV-029 补 flow_6m_total（615000，与 declared_revenue 410000 构成勾稽冲突样本）；
+GOLD-REV-018 补 approval_limit × approver_authority（500000 / 300000）第二组。
+批次未冻结，不升版；放量批次按此规格补齐 Q-08 注入样本。
+
 ### B1-003 — 协议缺陷 P-1：拆分标注与双标要求冲突（待修订）
 
 GOLD_LABELING §2「A 组奇数 / B 组偶数」与 §5 仲裁、compare_gold 交集语义、PRD 12.3 双标要求冲突；拆分口径下案件级一致率恒为空集。处置：改为双方全量标注（奇偶仅作起草顺序）。责任：实现方修订协议文档与排期说明；修订前 B 侧不开标。
