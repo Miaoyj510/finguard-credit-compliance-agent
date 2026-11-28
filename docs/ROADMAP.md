@@ -19,6 +19,7 @@
 | **6** ✅ | 事件日志、六层卷宗与回放 | `storage/event_log.py`、`storage/dossier.py`、`agents/replay.py` | ☑ 事件日志只追加、哈希链可校验 ☑ 六层齐全性两档校验 ☑ 同案同起点重放结论一致 ☑ 缺任一层判为不完整 ☑ 链断与卷宗被改均可检出 ☑ 不完整/对不上不可用于监管取证 | 8.9 / 8.10、FR-GATE-05/06、P-10、SEC-06 | `replay`（59 项） |
 | **6.5** ✅ | 外部数据集固化与参数校准 | `data/external/`、`scripts/fetch_datasets.py`、`scripts/calibrate.py`、`knowledge/guard.py`、`knowledge/taxonomy.py` | ☑ 清单以 SHA256 钉死 ☑ 哈希不符即失败 ☑ 归档不执行、可执行成员拒收 ☑ 解压防目录穿越 ☑ 校准只出相对量 ☑ 外部语料过入厂闸门并与运行时隔离 ☑ 原始件不进 Git ☑ D-3 只取结构规则不引入 ECL | 9.7、12.3 评测集口径、13.2 数据范围 | `data`（31 项） |
 | **7** ✅ | 贷后循环与核查 | `agents/post_monitor.py`、`agents/verifier.py`、`agents/post_loop.py`、`domain/post.py`、`rules/post_seeds.py` | ☑ 常驻循环与主流程解耦 ☑ 预警带触发规则版本与证据快照 ☑ 核查初核 ☑ GATE-C 处置四档 ☑ 提前量可测 ☑ 未签核不得处置 ☑ 超时只升级不放行 ☑ 采纳率/误报率可下钻到规则 | 8.4、6.4 FR-POST-01~07 | `post`（49 项） |
+| **7.5** ✅ | 界面设计系统与业务界面原型 | `design-system/finguard/`、`web/` | ☑ 设计系统落盘且记录修订决策 ☑ 四个业务界面按 PRD 10.2 实现 ☑ 人机分层与未判定高亮 ☑ 闸门不可绕过在界面表达 ☑ 状态不只靠颜色 ☑ 无障碍与打印样式齐备 ☑ 离线可用无 CDN 依赖 ☑ 界面质量可断言 | 10.2 界面示意、10.1 流程界面落点 | `ui`（35 项） |
 | **8** | 评测框架与 Gate 判定 | `eval/`、`data/gold/` | ☐ 4 套评测集可加载 ☐ 36/38 项指标可复算 ☐ 7/8 个 Gate 可判定 ☐ 硬指标无折中 ☐ 未达标如实记录 | 11—12 章 | `eval` |
 | **9** | 部署与生产就绪 | `deploy/`、`Dockerfile`、`docker-compose.yml` | ☐ 三环境隔离 ☐ 一键部署可重复 ☐ 灰度三档 + 回滚 ≤15 分钟 ☐ 50 并发压测报告 ☐ Runbook 交付 | 7.6 / 7.7、DP-12~DP-18 | `deploy` |
 

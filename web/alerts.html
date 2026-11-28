@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>贷后预警池 · FinGuard</title>
+<link rel="stylesheet" href="assets/app.css">
+
+</head>
+<body>
+<div class="app-shell">
+  <aside class="side">
+    <div class="brand"><span class="brand-mark">FG</span><span class="brand-name">FinGuard</span></div>
+    <nav>
+      <a href="index.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>案件列表</a>
+      <a href="workbench.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>审查意见工作台</a>
+      <a href="adjudication.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 4v16M7 8h10"/><path d="M5 8L2 15h6zM19 8l-3 7h6z"/><path d="M6 19h12"/></svg>冲突裁决</a>
+      <a href="alerts.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>贷后预警池</a>
+      <a href="replay.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>案件回放</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>贷后预警池</h1>
+        <div class="sub">贷后管理岗 · 排序：提前量↓ · 命中时间↓ · 示意数据</div>
+      </div>
+    </div>
+    <section aria-labelledby="pool-head">
+      <div class="card-head">
+        <h2 id="pool-head" class="card-title">预警池</h2>
+        <div class="seg" role="group" aria-label="按等级筛选" data-filter-level>
+          <button type="button" data-level-target="all" aria-pressed="true">全部</button>
+          <button type="button" data-level-target="高" aria-pressed="false">高</button>
+          <button type="button" data-level-target="中" aria-pressed="false">中</button>
+          <button type="button" data-level-target="低" aria-pressed="false">低</button>
+        </div>
+      </div>
+      <p class="muted" id="filter-status" role="status" aria-atomic="true" style="margin-bottom:var(--space-lg)">全部级别预警 2 条</p>
+
+      <article class="alert-row" data-level="高">
+        <div class="alert-top">
+          <span class="badge badge-danger">高</span>
+          <span class="mono">AL-20261112-0031</span>
+          <span class="lead">62 天<small>提前量</small></span>
+          <span class="muted">触发 <span class="mono">R-POST-007 v2.1.0</span></span>
+          <span class="badge badge-neutral">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            证据快照已固化
+          </span>
+        </div>
+        <p><strong>触发事实</strong>　最近 3 期还款金额合计 = <span class="mono">0</span>（应 ≥ <span class="mono">30,000</span>）</p>
+        <p><strong>核查结论</strong>　确认为客户账户资金归集异常　<span class="badge badge-warning">升级建议：触发现场检查</span></p>
+        <div class="human-zone">
+          <span class="who">人工操作 · 贷后管理岗（经 GATE-C 签核）</span>
+          <div class="btn-row" data-disposition-group>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261112-0031" data-disposition="关闭" aria-pressed="false">关闭</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261112-0031" data-disposition="跟进" aria-pressed="false">跟进</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261112-0031" data-disposition="上调关注" aria-pressed="false">上调关注</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261112-0031" data-disposition="触发现场检查" aria-pressed="false">触发现场检查</button>
+          </div>
+          <p class="muted" style="margin-top:var(--space-md)">
+            处置须经 <span class="mono">GATE-C</span> 签核后方可生效；超时 48 小时将升级至贷后管理部负责人并抄送分管行长，期间闸门保持待签核，<strong>不自动放行</strong>。
+          </p>
+        </div>
+      </article>
+
+      <article class="alert-row" data-level="中">
+        <div class="alert-top">
+          <span class="badge badge-warning">中</span>
+          <span class="mono">AL-20261113-0018</span>
+          <span class="lead">31 天<small>提前量</small></span>
+          <span class="muted">触发 <span class="mono">R-POST-011 v1.0.3</span></span>
+          <span class="badge badge-neutral">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            证据快照已固化
+          </span>
+        </div>
+        <p><strong>触发事实</strong>　对外评级下调 <span class="mono">2</span> 档，命中评级迁移规则</p>
+        <p><strong>核查结论</strong>　证据不足，需补充评级说明材料　<span class="badge badge-warning">升级建议：跟进</span></p>
+        <div class="human-zone">
+          <span class="who">人工操作 · 贷后管理岗（经 GATE-C 签核）</span>
+          <div class="btn-row" data-disposition-group>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261113-0018" data-disposition="关闭" aria-pressed="false">关闭</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261113-0018" data-disposition="跟进" aria-pressed="false">跟进</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261113-0018" data-disposition="上调关注" aria-pressed="false">上调关注</button>
+            <button class="btn btn-sm" type="button" data-action="dispose" data-alert="AL-20261113-0018" data-disposition="触发现场检查" aria-pressed="false">触发现场检查</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -102,6 +102,11 @@ SUITES: Dict[str, Dict] = {
         "modules": ["tests.test_post_monitor", "tests.test_verifier",
                     "tests.test_post_flow"],
     },
+    "ui": {
+        "slice": 7.5,
+        "desc": "界面设计系统与四个业务界面原型",
+        "modules": ["tests.test_web_ui"],
+    },
     "eval": {
         "slice": 8,
         "desc": "评测框架、金标集与 Gate 判定",
@@ -123,6 +128,7 @@ SLICE_TITLES = {
     6: "事件日志、六层卷宗与回放",
     6.5: "外部数据集固化与参数校准",
     7: "贷后循环与核查",
+    7.5: "界面设计系统与业务界面原型",
     8: "评测框架与 Gate 判定",
     9: "部署与生产就绪",
 }

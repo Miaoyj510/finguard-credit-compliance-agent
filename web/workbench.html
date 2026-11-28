@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>审查意见工作台 · FinGuard</title>
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="side">
+    <div class="brand"><span class="brand-mark">FG</span><span class="brand-name">FinGuard</span></div>
+    <nav>
+      <a href="index.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>案件列表</a>
+      <a href="workbench.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>审查意见工作台</a>
+      <a href="adjudication.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 4v16M7 8h10"/><path d="M5 8L2 15h6zM19 8l-3 7h6z"/><path d="M6 19h12"/></svg>冲突裁决</a>
+      <a href="alerts.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>贷后预警池</a>
+      <a href="replay.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>案件回放</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>审查意见工作台</h1>
+        <div class="sub">内控合规审查岗 · 示意数据，非真实案件</div>
+      </div>
+      <span class="badge badge-neutral mono">FG-20261114-000123</span>
+    </div>
+
+    <!-- 案件头 -->
+    <section class="card" aria-labelledby="case-head">
+      <div class="card-head">
+        <h2 id="case-head" class="card-title">案件信息</h2>
+        <span class="badge badge-primary">状态：审查意见成稿</span>
+      </div>
+      <dl class="kv">
+        <dt>产品类型</dt><dd>小额经营贷</dd>
+        <dt>机构层级</dt><dd>二级分行</dd>
+        <dt>业务发生日</dt><dd class="mono">2026-10-28</dd>
+        <dt>适用规则版本</dt>
+        <dd>
+          <span class="badge badge-neutral mono">R-CR-013 v3.2.0</span>
+          <span class="badge badge-warning mono">R-CR-021 须人工判定</span>
+          <span class="badge badge-warning mono">R-CR-0xx 须人工判定</span>
+        </dd>
+        <dt>适用规则总数</dt><dd><span class="mono">52</span> 条</dd>
+      </dl>
+      <div style="margin-top:var(--space-lg)">
+        <div class="coverage" role="img" aria-label="覆盖度：已判定 41 条，不适用 9 条，未判定 2 条">
+          <span class="judged" style="width:78.8%"></span>
+          <span class="na" style="width:17.3%"></span>
+          <span class="unresolved" style="width:3.9%"></span>
+        </div>
+        <div class="coverage-legend">
+          <span>已判定 <b>41</b></span>
+          <span>不适用 <b>9</b></span>
+          <span>未判定 <b>2</b>（原因码 NO_VERSION_MATCH × 2）</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 待办：未判定（琥珀，不可折叠） -->
+    <section class="todo" aria-labelledby="todo-head">
+      <h3 id="todo-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17.5v.01"/></svg>
+        待办：2 条规则无唯一适用版本，已置「须人工判定」，请人工判定后继续
+      </h3>
+      <p class="muted" style="margin-bottom:var(--space-md)">系统不会按最新版硬判——版本不唯一时必须由人裁定适用版本。</p>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" type="button" data-action="amend">去处理</button>
+        <span class="badge badge-warning mono">R-CR-021</span>
+        <span class="badge badge-warning mono">R-CR-0xx</span>
+      </div>
+    </section>
+
+    <!-- 意见卡片 -->
+    <section aria-labelledby="op-head">
+      <div class="card-head">
+        <h2 id="op-head" class="card-title">审查意见（3 条）</h2>
+        <span class="muted">严重度取自规则库，不可自拟</span>
+      </div>
+
+      <details class="opinion sev major" open>
+        <summary>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          <span class="badge badge-warning">重要</span>
+          <span class="mono">OP-001</span>
+          <span class="muted">规则 <span class="mono">R-CR-013 v3.2.0</span></span>
+        </summary>
+        <div class="opinion-body">
+          <div class="ai-block">
+            <span class="ai-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4M8 4h8"/></svg>
+              AI 产出 · 需人工确认
+            </span>
+            <p><strong>理由</strong>　申报月营收 820,000 元，近 6 个月账户流水合计 615,000 元，两者偏离 25.4%，触发《信贷业务审查操作规程》第四条。</p>
+          </div>
+
+          <h3 style="margin:var(--space-lg) 0 var(--space-md)">事实引用</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>字段路径</th><th>取值</th><th>来源</th><th>置信度</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">income.monthly_revenue</td><td class="mono">820,000</td><td>OCR</td><td><span class="badge badge-neutral">高</span></td></tr>
+                <tr><td class="mono">income.flow_6m_total</td><td class="mono">615,000</td><td>接口</td><td><span class="badge badge-neutral">高</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin:var(--space-lg) 0 var(--space-md)">依据出处</h3>
+          <p style="margin:0"><strong>《信贷业务审查操作规程》第四条</strong>　「……」</p>
+          <p class="muted" style="margin-top:var(--space-sm)">出处：<span class="mono">DOC-SYS-2025-0031 · CHK-014</span>　生效日 <span class="mono">2025-07-01</span></p>
+
+          <div class="human-zone">
+            <span class="who">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              人工操作 · 合规审查岗
+            </span>
+            <div class="btn-row">
+              <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
+              <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
+              <span class="muted" style="align-self:center">改写将同时保留原始意见与修改后意见（FR-GATE-06）</span>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="opinion sev info">
+        <summary>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          <span class="badge badge-neutral">提示</span>
+          <span class="mono">OP-002</span>
+          <span class="muted">规则 <span class="mono">R-CR-021 v1.4.1</span></span>
+        </summary>
+        <div class="opinion-body">
+          <div class="ai-block">
+            <span class="ai-tag">AI 产出 · 需人工确认</span>
+            <p><strong>理由</strong>　贷款期限 36 个月，处于产品上限边界，建议确认是否适用例外条款。</p>
+          </div>
+          <div class="human-zone">
+            <span class="who">人工操作 · 合规审查岗</span>
+            <div class="btn-row">
+              <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
+              <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="opinion sev critical">
+        <summary>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          <span class="badge badge-danger">重大</span>
+          <span class="mono">OP-003</span>
+          <span class="muted">规则 <span class="mono">R-CR-055 v1.0.0</span></span>
+        </summary>
+        <div class="opinion-body">
+          <div class="ai-block">
+            <span class="ai-tag">AI 产出 · 需人工确认</span>
+            <p><strong>理由</strong>　实际审批人授权额度低于本次审批金额，命中越权条款。</p>
+          </div>
+          <div class="human-zone">
+            <span class="who">人工操作 · 合规审查岗</span>
+            <div class="btn-row">
+              <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
+              <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- 闸门条 -->
+    <div class="gate-bar" role="region" aria-label="签核闸门 GATE-A">
+      <span class="g-id">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <span>GATE-A 审查意见签核<span class="badge badge-gate">人工闸门 · 不可绕过</span></span>
+        <span class="badge badge-gate" data-gate-state>待签核</span>
+      </span>
+      <span class="g-timer" data-deadline="2026-11-27T10:00:00" data-now="2026-11-26T16:00:00">剩余 18 小时</span>
+      <span class="g-qual">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        当前签核人资格：内控合规审查岗
+      </span>
+      <button class="btn btn-primary" type="button" data-action="sign" data-gate="GATE-A">提交签核</button>
+    </div>
+  </main>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>
