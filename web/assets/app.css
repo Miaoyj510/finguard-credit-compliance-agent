@@ -136,6 +136,23 @@ a { color: var(--color-primary); }
 }
 .card-title { font-weight: 600; }
 
+/* ---------------- 侧栏用户块 ---------------- */
+.side-user {
+  margin-top: var(--space-2xl); padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border); font-size: var(--fs-xs);
+}
+.side-user .u-top { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-sm); }
+.side-user .avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  background: var(--color-muted); color: var(--color-primary);
+  display: grid; place-items: center; font-weight: 600; font-size: var(--fs-xs);
+}
+.side-user .u-name { font-weight: 600; color: var(--color-foreground); font-size: var(--fs-sm); }
+.side-user .u-role { color: var(--color-muted-foreground); }
+.side-user .u-scope { margin-top: var(--space-md); color: var(--color-muted-foreground); }
+.side-user .u-scope b { color: var(--color-foreground); font-family: var(--font-mono); }
+.side-user .u-out { display: inline-block; margin-top: var(--space-md); color: var(--color-primary); cursor: pointer; }
+
 /* ---------------- 徽标 ---------------- */
 .badge {
   display: inline-flex; align-items: center; gap: var(--space-sm);
@@ -287,7 +304,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 
 /* ---------------- 表单 ---------------- */
 label { display: block; font-size: var(--fs-sm); font-weight: 500; margin-bottom: var(--space-sm); }
-input[type="radio"], input[type="text"], textarea, select {
+input[type="radio"], input[type="text"], input[type="password"], textarea, select {
   font: inherit; font-size: var(--fs-sm); color: var(--color-foreground);
   padding: var(--space-md) var(--space-lg); width: 100%;
   border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card);

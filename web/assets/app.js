@@ -148,7 +148,65 @@
     }
   }
 
+  /* ---------- 侧栏当前用户 ---------- */
+  var SCOPE = {
+    "u-001": { role: "合规审查岗", level: "授权层级 2", scope: "GATE-A 审查意见签核" },
+    "u-002": { role: "风险研判岗", level: "授权层级 3", scope: "GATE-B 处置建议签核" },
+    "u-003": { role: "贷后管理岗", level: "授权层级 2", scope: "GATE-C 预警处置签核" },
+    "u-004": { role: "内审稽核岗", level: "授权层级 3", scope: "只读 · 导出取证包" }
+  };
+
+  function initUser() {
+    var side = document.querySelector(".side");
+    if (!side) return;
+    var box = document.createElement("div");
+    box.className = "side-user";
+    box.setAttribute("data-current-user", "");
+    var account = "";
+    try { account = window.localStorage.getItem("fg.role") || ""; } catch (e) { account = ""; }
+    if (!account) {
+      var url = new URLSearchParams(window.location.search).get("role");
+      account = url || "";
+    }
+    var meta = SCOPE[account];
+    var avatar = document.createElement("span");
+    avatar.className = "avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = account ? account.slice(-1).toUpperCase() : "?";
+    var wrap = document.createElement("div");
+    wrap.className = "u-top";
+    var name = document.createElement("span");
+    name.className = "u-name";
+    name.textContent = account || "未登录";
+    var roleLine = document.createElement("div");
+    roleLine.className = "u-role";
+    roleLine.textContent = meta ? meta.role : "请先登录后再操作";
+    wrap.appendChild(avatar);
+    wrap.appendChild(name);
+    box.appendChild(wrap);
+    box.appendChild(roleLine);
+    if (meta) {
+      var scope = document.createElement("div");
+      scope.className = "u-scope";
+      scope.textContent = "权限范围：";
+      var b = document.createElement("b");
+      b.textContent = meta.scope;
+      scope.appendChild(b);
+      var lv = document.createElement("div");
+      lv.textContent = meta.level;
+      scope.appendChild(lv);
+      box.appendChild(scope);
+    }
+    var out = document.createElement("a");
+    out.className = "u-out";
+    out.setAttribute("href", "login.html");
+    out.textContent = account ? "切换账号 / 退出" : "去登录";
+    box.appendChild(out);
+    side.appendChild(box);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    initUser();
     tickTimers();
     initFilter();
     initActions();

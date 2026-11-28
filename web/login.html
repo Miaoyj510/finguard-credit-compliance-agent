@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · FinGuard</title>
+<link rel="stylesheet" href="assets/app.css">
+<style>
+/* 登录页：单栏居中，登录页不是看板 */
+.login-shell { display: grid; place-items: center; min-height: 100vh; padding: var(--space-2xl); }
+.login-card { width: 100%; max-width: 420px; }
+.login-brand { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-xl); }
+.login-brand .brand-mark { width: 32px; height: 32px; border-radius: var(--radius); background: var(--color-primary); color: #fff; display: grid; place-items: center; font-weight: 700; }
+.login-brand .brand-name { font-weight: 600; font-size: var(--fs-lg); margin: 0; }
+.login-tagline { color: var(--color-muted-foreground); font-size: var(--fs-sm); margin: calc(var(--space-lg) * -1 + 4px) 0 var(--space-2xl); }
+.field { margin-bottom: var(--space-lg); }
+.field input { margin-top: var(--space-sm); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 68px; }
+.pw-toggle {
+  position: absolute; right: var(--space-sm); top: 50%; transform: translateY(-10%);
+  min-height: 32px; padding: 0 var(--space-md); border: 1px solid var(--color-border);
+  background: var(--color-card); border-radius: var(--radius); cursor: pointer;
+  font: inherit; font-size: var(--fs-xs); color: var(--color-muted-foreground);
+}
+.pw-toggle:hover { background: var(--color-muted); }
+.pw-toggle:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
+.check { display: flex; align-items: center; gap: var(--space-md); font-size: var(--fs-sm); margin-bottom: var(--space-xl); }
+.check input { width: auto; }
+.env-note {
+  display: flex; gap: var(--space-md); align-items: flex-start;
+  background: var(--color-warning-soft); border: 1px solid #FCD34D; border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius); padding: var(--space-lg); margin-bottom: var(--space-lg);
+}
+.env-note .t { font-weight: 600; color: var(--color-accent); }
+.env-note p { margin: var(--space-xs) 0 0; font-size: var(--fs-xs); color: var(--color-muted-foreground); }
+.roles { border-top: 1px solid var(--color-border); margin-top: var(--space-xl); padding-top: var(--space-lg); }
+.roles h2 { font-size: var(--fs-sm); color: var(--color-muted-foreground); font-weight: 600; margin-bottom: var(--space-md); }
+.role-list { display: grid; gap: var(--space-sm); }
+.role-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg);
+  width: 100%; text-align: left; min-height: 44px; padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card);
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  transition: background .18s var(--ease), border-color .18s var(--ease);
+}
+.role-btn:hover { background: var(--color-muted); border-color: var(--color-primary); }
+.role-btn:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 1px; }
+.role-btn .lv { color: var(--color-muted-foreground); font-size: var(--fs-xs); }
+.login-foot { margin-top: var(--space-2xl); text-align: center; color: var(--color-muted-foreground); font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<div class="login-shell">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark">FG</span>
+      <h1 class="brand-name">FinGuard</h1>
+    </div>
+    <p class="login-tagline">内控合规审查与贷后风险 Agent 平台 · 规则可溯 · 证据可回放 · 人在环不可绕过</p>
+
+    <div class="env-note" role="note">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17.5v.01"/></svg>
+      <div>
+        <span class="t">本机演示环境</span>
+        <p>账号与密码均为<b>合成数据</b>，不对应真实人员；登录仅用于演示不同岗位看到的界面与签核权限差异。</p>
+      </div>
+    </div>
+
+    <form class="card" id="login-form" novalidate>
+      <div class="field">
+        <label for="account">账号（实名工号）</label>
+        <input type="text" id="account" name="account" autocomplete="username" required
+               aria-describedby="account-help" placeholder="例：u-001">
+        <div class="muted" id="account-help">签核记录将绑定该账号，无法代签。</div>
+      </div>
+
+      <div class="field">
+        <label for="password">密码</label>
+        <div class="pw-wrap">
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+          <button class="pw-toggle" type="button" id="pw-toggle" aria-label="显示密码">显示</button>
+        </div>
+        <div class="err" id="login-err">账号或密码不正确，请重试。</div>
+      </div>
+
+      <label class="check" for="remember">
+        <input type="checkbox" id="remember" name="remember">
+        <span>在此设备保持登录 <span class="muted">（绑定设备指纹，用于签核留痕）</span></span>
+      </label>
+
+      <button class="btn btn-primary" type="submit" style="width:100%">登录</button>
+    </form>
+
+    <div class="roles">
+      <h2>按岗位快速进入（演示）</h2>
+      <div class="role-list">
+        <button class="role-btn" type="button" data-role="合规审查岗" data-account="u-001" data-level="授权层级 2">
+          <span>合规审查岗 · 内控合规审查</span><span class="lv">可签核 GATE-A</span>
+        </button>
+        <button class="role-btn" type="button" data-role="风险研判岗" data-account="u-002" data-level="授权层级 3">
+          <span>风险研判岗</span><span class="lv">可签核 GATE-B</span>
+        </button>
+        <button class="role-btn" type="button" data-role="贷后管理岗" data-account="u-003" data-level="授权层级 2">
+          <span>贷后管理岗</span><span class="lv">可签核 GATE-C</span>
+        </button>
+        <button class="role-btn" type="button" data-role="内审稽核岗" data-account="u-004" data-level="授权层级 3">
+          <span>内审稽核岗</span><span class="lv">只读 · 可导出取证包</span>
+        </button>
+      </div>
+    </div>
+
+    <p class="login-foot">FinGuard v0.1 · 演示形态（本地 Compose · 1—3 人）</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("login-form");
+  var err = document.getElementById("login-err");
+  var pw = document.getElementById("password");
+  var toggle = document.getElementById("pw-toggle");
+
+  toggle.addEventListener("click", function () {
+    var show = pw.type === "password";
+    pw.type = show ? "text" : "password";
+    toggle.textContent = show ? "隐藏" : "显示";
+    toggle.setAttribute("aria-label", show ? "隐藏密码" : "显示密码");
+    pw.focus();
+  });
+
+  var buttons = document.querySelectorAll(".role-btn");
+  for (var i = 0; i < buttons.length; i++) {
+    (function (btn) {
+      btn.addEventListener("click", function () {
+        document.getElementById("account").value = btn.getAttribute("data-account");
+        pw.focus();
+      });
+    })(buttons[i]);
+  }
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var account = document.getElementById("account");
+    if (!account.value.trim() || !pw.value) {
+      err.textContent = "请填写账号与密码。";
+      err.classList.add("show");
+      (account.value.trim() ? pw : account).focus();
+      return;
+    }
+    err.classList.remove("show");
+    try { window.localStorage.setItem("fg.role", account.value.trim()); } catch (e) { /* 演示态忽略 */ }
+    window.location.href = "index.html?role=" + encodeURIComponent(account.value.trim());
+  });
+})();
+</script>
+</body>
+</html>

@@ -14,7 +14,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB = os.path.join(ROOT, "web")
 DS = os.path.join(ROOT, "design-system", "finguard")
 
-PAGES = ("index.html", "workbench.html", "adjudication.html", "alerts.html", "replay.html")
+PAGES = ("index.html", "login.html", "workbench.html", "adjudication.html",
+         "alerts.html", "replay.html")
+
+#: 走应用外壳（侧栏 + 共享脚本）的业务页面；登录页是单栏独立页面
+SHELL_PAGES = ("index.html", "workbench.html", "adjudication.html",
+               "alerts.html", "replay.html")
 
 
 def read(path):
@@ -71,11 +76,14 @@ class TestPagesExist(unittest.TestCase):
             self.assertIn('name="viewport"', html, name)
             self.assertIn("<title>", html, name)
 
-    def test_每页引用共享样式与脚本(self):
+    def test_每页引用共享样式(self):
         for name in PAGES:
-            html = page(name)
-            self.assertIn("assets/app.css", html, name)
-            self.assertIn("assets/app.js", html, name)
+            self.assertIn("assets/app.css", page(name), name)
+
+    def test_业务页面引用共享脚本(self):
+        """登录页是单栏独立页面，脚本内联；业务页面走共享 app.js。"""
+        for name in SHELL_PAGES:
+            self.assertIn("assets/app.js", page(name), name)
 
     def test_内部链接都指向存在的文件(self):
         for name in PAGES:
@@ -111,8 +119,10 @@ class TestAccessibility(unittest.TestCase):
                 self.assertIn("type=", tag, "%s 的按钮缺 type" % name)
 
     def test_每页有唯一h1(self):
+        import re
         for name in PAGES:
-            self.assertEqual(page(name).count("<h1>"), 1, name)
+            n = len(re.findall(r"<h1[\s>]", page(name)))
+            self.assertEqual(n, 1, name)
 
     def test_表格结构完整(self):
         for name in PAGES:
@@ -157,6 +167,83 @@ class TestStateNotColorOnly(unittest.TestCase):
         html = page("workbench.html")
         self.assertIn("须人工判定", html)
         self.assertIn("NO_VERSION_MATCH", html)
+
+
+class TestLoginPage(unittest.TestCase):
+    """登录页：认证要求在 PRD 7.6.7⑩ 与 9.4，界面必须有入口。"""
+
+    def setUp(self):
+        self.html = page("login.html")
+
+    def test_登录页存在且有表单(self):
+        self.assertIn("<form", self.html)
+        self.assertIn('id="login-form"', self.html)
+
+    def test_输入框有可见标签并正确关联(self):
+        for field, fid in (("账号（实名工号）", "account"), ("密码", "password")):
+            self.assertIn('for="%s"' % fid, self.html, "%s 缺 label 关联" % field)
+            self.assertIn('id="%s"' % fid, self.html)
+
+    def test_不是只用placeholder当标签(self):
+        """placeholder 不能替代 label（skill 规则 8）。
+
+        账号框可以有 placeholder（但 label 必须可见）；
+        密码框**不放** placeholder——切到明文后会变成"密码显示在框里"。
+        """
+        self.assertIn('for="account"', self.html)
+        account_tag = self.html[self.html.index('id="account"'):][:260]
+        self.assertIn("placeholder", account_tag)
+        pw_tag = self.html[self.html.index('id="password"'):][:160]
+        self.assertNotIn("placeholder", pw_tag)
+
+    def test_有自动填充与密码类型(self):
+        self.assertIn('autocomplete="username"', self.html)
+        self.assertIn('autocomplete="current-password"', self.html)
+        self.assertIn('type="password"', self.html)
+
+    def test_密码可见切换有可访问名(self):
+        self.assertIn('id="pw-toggle"', self.html)
+        self.assertIn('aria-label="显示密码"', self.html)
+
+    def test_声明演示环境与合成账号(self):
+        """本地演示形态：必须说清账号是合成的，避免被当成真实客户数据。"""
+        self.assertIn("本机演示环境", self.html)
+        self.assertIn("合成数据", self.html)
+
+    def test_演示账号与岗位映射键一致(self):
+        """登录页填的账号与侧栏岗位映射的键必须一致，否则显示"未登录"。"""
+        import re
+        js = read(os.path.join(WEB, "assets", "app.js"))
+        keys = set(re.findall(r'"(u-\d+)":\s*\{', js))
+        accounts = set(re.findall(r'data-account="([^"]+)"', self.html))
+        self.assertTrue(keys, "app.js 未定义岗位映射")
+        self.assertEqual(keys, accounts, "账号与岗位映射不一致")
+
+    def test_四个演示岗位对应四处闸门(self):
+        for token in ("合规审查岗", "风险研判岗", "贷后管理岗", "内审稽核岗",
+                      "GATE-A", "GATE-B", "GATE-C"):
+            self.assertIn(token, self.html)
+
+    def test_绑定设备指纹的说明在(self):
+        """FR-GATE-03：签核动作绑定设备指纹，登录即绑定。"""
+        self.assertIn("设备指纹", self.html)
+
+    def test_错误提示就近而非只在顶部(self):
+        self.assertIn('class="err" id="login-err"', self.html)
+
+    def test_输入框样式覆盖全部类型(self):
+        """漏掉某个 type，表单宽度就会不一致（password 曾漏过）。"""
+        css = read(os.path.join(WEB, "assets", "app.css"))
+        block = css[css.index('input[type="radio"]'):]
+        block = block[:block.index("}")]
+        for tp in ("radio", "text", "password"):
+            self.assertIn('input[type="%s"]' % tp, block, "输入框样式漏了 %s" % tp)
+
+    def test_登录页是单栏居中(self):
+        """登录页不是看板——单栏居中，表单宽度受限。"""
+        self.assertIn(".login-shell", self.html)
+        self.assertIn("place-items: center", self.html)
+        self.assertIn("max-width: 420px", self.html)
 
 
 class TestCssRules(unittest.TestCase):
@@ -225,7 +312,7 @@ class TestOfflineAndPrint(unittest.TestCase):
     def test_等宽字体用于编号与金额(self):
         css = read(os.path.join(WEB, "assets", "app.css"))
         self.assertIn("--font-mono", css)
-        for name in PAGES:
+        for name in SHELL_PAGES:
             self.assertIn('class="mono"', page(name), name)
 
 
