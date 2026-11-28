@@ -95,8 +95,10 @@
     <div class="roles">
       <h2>按岗位快速进入（演示）</h2>
       <div class="role-list">
-        <button class="role-btn" type="button" data-role="合规审查岗" data-account="u-001" data-level="授权层级 2">
-          <span>合规审查岗 · 内控合规审查</span><span class="lv">可签核 GATE-A</span>
+        <!-- 评审修正：岗位名统一为 PRD 8.7 / 后端 GATE_SPECS 口径
+             「内控合规审查岗」，切片 9 接真实鉴权时签核校验按此串比对 -->
+        <button class="role-btn" type="button" data-role="内控合规审查岗" data-account="u-001" data-level="授权层级 2">
+          <span>内控合规审查岗</span><span class="lv">可签核 GATE-A</span>
         </button>
         <button class="role-btn" type="button" data-role="风险研判岗" data-account="u-002" data-level="授权层级 3">
           <span>风险研判岗</span><span class="lv">可签核 GATE-B</span>

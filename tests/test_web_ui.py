@@ -432,3 +432,34 @@ class TestReviewGaps75(unittest.TestCase):
     # --- R-F12 退出真的退出 ---
     def test_退出清理本地登录态(self):
         self.assertIn("removeItem", self.js)
+
+
+class TestPrdLoginAlignment(unittest.TestCase):
+    """评审 A1：PRD 10.2.5 登录线框与实现必须共存且口径一致。
+
+    这条断言防的是「文档层缺口静默重开」——实现先跑、PRD 落后，
+    正是切片 7.5 评审时发现的缺口形态。
+    """
+
+    def setUp(self):
+        self.prd = read(os.path.join(
+            ROOT, "PRD-信贷内控合规审查与贷后风险Agent平台.md"))
+        self.html = page("login.html")
+
+    def test_PRD含登录线框与认证入口原则(self):
+        self.assertIn("### 10.2.5 登录页（认证入口与岗位权限可见）", self.prd)
+        self.assertIn("**认证入口与岗位权限可见**", self.prd)
+
+    def test_线框岗位与页面一致(self):
+        section = self.prd[self.prd.index("### 10.2.5"):]
+        for token in ("内控合规审查岗", "风险研判岗", "贷后管理岗", "内审稽核岗",
+                      "GATE-A", "GATE-B", "GATE-C", "只读"):
+            self.assertIn(token, section, "PRD 线框缺 %s" % token)
+            self.assertIn(token, self.html, "登录页缺 %s" % token)
+
+    def test_演示声明与代签提示两端都在(self):
+        for token in ("合成数据", "无法代签", "设备指纹"):
+            self.assertIn(token, self.html)
+        section = self.prd[self.prd.index("### 10.2.5"):]
+        for token in ("合成数据", "无法代签", "设备指纹"):
+            self.assertIn(token, section)

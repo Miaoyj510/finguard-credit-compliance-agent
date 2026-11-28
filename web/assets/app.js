@@ -182,7 +182,7 @@
 
   /* ---------- 侧栏当前用户 ---------- */
   var SCOPE = {
-    "u-001": { role: "合规审查岗", level: "授权层级 2", scope: "GATE-A 审查意见签核", gate: "GATE-A" },
+    "u-001": { role: "内控合规审查岗", level: "授权层级 2", scope: "GATE-A 审查意见签核", gate: "GATE-A" },
     "u-002": { role: "风险研判岗", level: "授权层级 3", scope: "GATE-B 处置建议签核", gate: "GATE-B" },
     "u-003": { role: "贷后管理岗", level: "授权层级 2", scope: "GATE-C 预警处置签核", gate: "GATE-C" },
     "u-004": { role: "内审稽核岗", level: "授权层级 3", scope: "只读 · 导出取证包", gate: null }
