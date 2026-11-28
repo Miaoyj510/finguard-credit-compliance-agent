@@ -130,14 +130,19 @@ class Handoff:
             )
 
         for item in self.rule_binding or ():
-            if not item.get("rule_id") or not item.get("version"):
-                raise HandoffIncompleteError("Handoff.rule_binding 每项须含 rule_id 与 version")
+            if not item.get("rule_id"):
+                raise HandoffIncompleteError("Handoff.rule_binding 每项须含 rule_id")
             basis = item.get("binding_basis") or ""
             if "须人工判定" in basis or item.get("unresolved_reason_code"):
+                # 未判定项**本来就没有唯一版本**（NO_VERSION_MATCH 无版本可写，
+                # AMBIGUOUS_VERSION 多版本待裁），强制 version 会逼调用方填假值；
+                # 它的替代性完备条件是原因码必填。
                 if not item.get("unresolved_reason_code"):
                     raise HandoffIncompleteError(
                         "Handoff.rule_binding 未判定项须标 unresolved_reason_code"
                     )
+            elif not item.get("version"):
+                raise HandoffIncompleteError("Handoff.rule_binding 已绑定项须含 version")
 
         for item in self.facts_digest or ():
             for key in ("field_path", "value", "confidence", "conflict_state"):
@@ -171,7 +176,8 @@ class Handoff:
             )
 
         gate_state = self.human_gate_state or {}
-        for key in ("gate_id", "state"):
+        # PRD 8.6：human_gate_state「必含 gate_id / state / 是否有签核记录」三项
+        for key in ("gate_id", "state", "has_signature"):
             if key not in gate_state:
                 raise HandoffIncompleteError("Handoff.human_gate_state 缺 %s" % key)
 
