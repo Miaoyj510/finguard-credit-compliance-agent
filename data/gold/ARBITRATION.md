@@ -27,7 +27,15 @@
 | 影响 | 金标 coverage_prd 与管线 coverage 数值不同；切片 8 跑 Q-10（覆盖度字段完整性）与 GATE-1 时按哪个口径计分会直接改变结论 |
 | 现状 | 金标按 PRD 口径冻结；实现不动 |
 | 建议 | 仲裁人二选一：① 实现侧 `Auditor.build` 增 `unresolved_bindings` 入参，coverage 并入绑定级（PRD 不动）；② PRD 8.4/10.2.1 修订为「coverage 只计已绑定规则，绑定级须人工判定单列 unresolved_entries」（实现不动）。评审方倾向 ①（线框是给用户看的，用户视角的「未判定」天然含须人工判定） |
-| 状态 | ⏸ 待仲裁（用户 / PRD 责任人） |
+| 状态 | ✅ **已裁决（2026-11-28，仲裁人=用户）：选项 ①，改实现对齐 PRD**。金标口径不变（本就按 PRD）。实现规格见下，由实现方在下一「决策落地」提交执行（实现方正处切片 8，同文件并行改动由合并方负责对齐） |
+
+**A-01 实现规格（裁决附件，供实现方执行）**：
+
+1. `Auditor.build(...)` 增关键字入参 `unresolved_bindings: Sequence = ()`（元素取 `case.unresolved` 的 UnresolvedRule 或同构映射：rule_id / reason_code / detail）；
+2. coverage 计算：`unresolved += len(unresolved_bindings)`、`total += len(unresolved_bindings)`；并为每条绑定级未判定生成 `UnresolvedEntry`（reason_code 用绑定级码 NO_VERSION_MATCH / AMBIGUOUS_VERSION），与判定级未判定条目并列进 `unresolved_entries`；
+3. `CoverageSummary` 增字段 `binding_unresolved: int = 0` 并入 to_dict；`is_consistent` 在 `bound_rule_total is not None` 时的交叉校验改为 `bound_rule_total + binding_unresolved == total`（原「bound_rule_total == total」随之失效，切片 4 相关断言同步改写并钉住新语义）；
+4. 调用方传参：切片 8 评测加载器、卷宗 L4 组装、`build_handoff` 的 coverage_summary 来源处一律传 `case.unresolved`；未传时默认 `()` 保持旧行为（向后兼容）；
+5. 断言：补 PRD 10.2.1 线框场景——2 条 NO_VERSION_MATCH 的案件 coverage 为「未判定 2、原因码可列」，且 `judged + not_applicable + unresolved == total` 与 bound_rule_total 交叉校验同时成立。
 
 ### B1-002 — 双人标注分歧
 
