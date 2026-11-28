@@ -177,6 +177,10 @@ class CoverageSummary:
 
     ``bound_rule_total`` 是本案实际绑定的规则条数（切片 5 A4 交叉校验）：
     与 ``total`` 不一致即说明判定集合与规则绑定集合对不上，``is_consistent`` 判否。
+
+    **A-01 裁决（PRD 口径）**：绑定级「须人工判定」（三键无唯一适用版本）**计入
+    未判定**——用户视角的"未判定"天然含"根本没有适用版本"的那几条。
+    因此交叉校验口径改为 ``bound_rule_total + binding_unresolved == total``。
     """
 
     judged: int = 0
@@ -186,12 +190,17 @@ class CoverageSummary:
     unresolved_entries: Tuple[UnresolvedEntry, ...] = ()
     # 本案实际绑定的规则条数（切片 5 A4）：与 total 不一致说明判定集合与规则集合对不上。
     bound_rule_total: Optional[int] = None
+    # **绑定级**须人工判定条数（A-01 裁决，PRD 口径）：
+    # 用户视角的「未判定」天然含"根本没有唯一适用版本"的规则，
+    # 因此它计入 unresolved 与 total，并单列计数以便与判定级未判定区分。
+    binding_unresolved: int = 0
 
     @property
     def is_consistent(self) -> bool:
         if self.judged + self.not_applicable + self.unresolved != self.total:
             return False
-        if self.bound_rule_total is not None and self.bound_rule_total != self.total:
+        if (self.bound_rule_total is not None
+                and self.bound_rule_total + self.binding_unresolved != self.total):
             return False
         return True
 
@@ -202,6 +211,7 @@ class CoverageSummary:
             "unresolved": self.unresolved,
             "total": self.total,
             "bound_rule_total": self.bound_rule_total,
+            "binding_unresolved": self.binding_unresolved,
             "is_consistent": self.is_consistent,
             "unresolved_entries": [e.to_dict() for e in self.unresolved_entries],
         }

@@ -27,6 +27,7 @@ __all__ = [
     "Permission",
     "can_read_documents",
     "sign_gate_for_role",
+    "permission_of",
 ]
 
 

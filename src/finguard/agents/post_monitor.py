@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
+                    Sequence, Tuple)
 
 from ..domain.enums import Severity, Verdict
 from ..domain.post import (
@@ -49,15 +50,30 @@ class PostMonitorAgent:
         *,
         engine: Optional[RuleEngine] = None,
         clock: Optional[Any] = None,
+        event_sink: Optional[Callable[[Mapping[str, Any]], None]] = None,
     ) -> None:
         # rules: {"rule_id@version": Rule}——与贷前**同一个规则库**（FR-POST-02）
         self._rules = dict(rules)
         self._engine = engine or RuleEngine()
         self._clock = clock or (lambda: datetime.now().isoformat(timespec="seconds"))
+        self._event_sink = event_sink
         self._views: Dict[str, PostCaseView] = {}
         self._alerts: List[Alert] = []
-        self._alert_keys: Dict[Tuple[str, str], str] = {}   # (case_id, rule_id) -> alert_id
+        self._alert_keys: Dict[Tuple[str, str, str], str] = {}  # (case, rule, 事实指纹)
+        self._events: List[Dict[str, Any]] = []
         self._running = False
+
+    # ---------------- 事件 ----------------
+    def _emit(self, kind: str, **detail: Any) -> None:
+        """写一条事件（跳过、拒签这类**没有业务后果但必须留痕**的动作）。"""
+        event = {"kind": kind, "at": self._clock(), "detail": detail}
+        self._events.append(event)
+        if self._event_sink is not None:
+            self._event_sink(event)
+
+    @property
+    def events(self) -> Tuple[Dict[str, Any], ...]:
+        return tuple(self._events)
 
     # ---------------- 启停（FR-POST-01：可独立启停） ----------------
     def start(self) -> None:
@@ -99,6 +115,12 @@ class PostMonitorAgent:
         常驻循环的价值在持续监测：下一期逾期天数变了就是新的事实、新的预警。
         原实现按 (case_id, rule_id) 去重，等于每条规则生命周期内只报一次，
         贷后监测在第一次预警后就名存实亡，且漏报方向无声无息。
+
+        **C2 口径（业务侧确认）**：事实指纹不变时**不重报**，包括已「关闭」
+        处置后的事实未变的情形。理由：重报的前提是**有新信息**——事实变了
+        才需要人再看一次；事实没变就再报一次，只是噪声，还会把采纳率分母
+        灌水。要让案件重新进入视野，正确做法是**处置档位本身**（跟进 / 上调关注）
+        或事实变化，而不是靠重复预警。
         """
         if not self._running:
             return ()
@@ -117,9 +139,18 @@ class PostMonitorAgent:
                 fact_key = self._fact_fingerprint(view, evaluation)
                 if (case_id, rule_id, fact_key) in self._alert_keys:
                     continue                      # 幂等：同事实已有预警
-                produced.append(
-                    (self._make_alert(view, rule, evaluation, moment), fact_key)
-                )
+                try:
+                    alert = self._make_alert(view, rule, evaluation, moment)
+                except ValueError as exc:
+                    # C1 决策：**按案件跳过并留痕**，不中断整轮扫描。
+                    # 例：as_of 早于该案的 baseline_date，提前量会算成负数——
+                    # 那说明调用方的时间参数不适用于这一件，跳过它、
+                    # 记一条 scan_skipped 事件，继续扫下一件。
+                    # 静默跳过 = 静默漏报，比中断更难发现，所以必须留痕。
+                    self._emit("scan_skipped", case_id=case_id, rule_id=rule_id,
+                               as_of=moment, reason=str(exc))
+                    continue
+                produced.append((alert, fact_key))
         out: List[Alert] = []
         for alert, fact_key in produced:
             self._alerts.append(alert)

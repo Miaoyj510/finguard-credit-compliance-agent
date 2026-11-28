@@ -250,6 +250,7 @@ class Auditor:
         case_id: Optional[str] = None,
         bound_rule_total: Optional[int] = None,
         start_seq: int = 0,
+        unresolved_bindings: Sequence[Any] = (),
     ) -> OpinionBuildResult:
         """把判定结果转成结构化意见。
 
@@ -260,6 +261,10 @@ class Auditor:
         case_id          : 案件号。**给了就用它编意见编号**（OP-<case_id>-<seq>），
                           否则退回旧格式并在同一次 build 内去重（评审意见 5）。
         bound_rule_total : 本案实际绑定的规则条数，用于覆盖度交叉校验（评审留档 A4）。
+        unresolved_bindings : **绑定级**须人工判定条目（``case.unresolved``），
+                          A-01 裁决按 PRD 口径：用户视角的「未判定」天然含
+                          "根本没有唯一适用版本"的规则，故计入未判定与总数。
+                          不传时保持旧行为（向后兼容）。
         start_seq        : 本轮成稿的编号基准（评审咨询 C2）。同一案件退回后重新成稿时
                           由编排器推进该基准，否则两轮会产出**同号**意见，
                           切片 6 卷宗按 opinion_id 建键就会静默覆盖。
@@ -401,13 +406,36 @@ class Auditor:
                 )
             )
 
+        # --- 绑定级须人工判定（A-01 裁决：按 PRD 口径计入未判定）---
+        binding_entries: List[UnresolvedEntry] = []
+        for item in unresolved_bindings or ():
+            rule_id = getattr(item, "rule_id", None)
+            reason_code = getattr(item, "reason_code", None)
+            detail = getattr(item, "detail", "")
+            if isinstance(item, Mapping):
+                rule_id = rule_id or item.get("rule_id")
+                reason_code = reason_code or item.get("reason_code")
+                detail = detail or item.get("detail", "")
+            if isinstance(reason_code, str):
+                reason_code = UnresolvedReasonCode(reason_code)
+            binding_entries.append(
+                UnresolvedEntry(
+                    rule_id=rule_id or "",
+                    rule_version="",
+                    reason_code=reason_code or UnresolvedReasonCode.NO_VERSION_MATCH,
+                    detail=detail or "",
+                )
+            )
+        binding_unresolved = len(binding_entries)
+
         coverage = CoverageSummary(
             judged=judged,
             not_applicable=not_applicable,
-            unresolved=unresolved_count,
-            total=len(evaluations),
-            unresolved_entries=tuple(unresolved),
+            unresolved=unresolved_count + binding_unresolved,
+            total=len(evaluations) + binding_unresolved,
+            unresolved_entries=tuple(unresolved) + tuple(binding_entries),
             bound_rule_total=bound_rule_total,
+            binding_unresolved=binding_unresolved,
         )
         return OpinionBuildResult(
             opinions=tuple(opinions),

@@ -112,14 +112,26 @@ SUITES: Dict[str, Dict] = {
         "desc": "界面设计系统与四个业务界面原型",
         "modules": ["tests.test_web_ui"],
     },
-    "eval": {
+    "gold": {
         "slice": 8,
+        "desc": "金标标注：合成案件生成器、任务包分离与双盲比对",
+        "modules": ["tests.test_gold_pack"],
+    },
+    "eval": {
+        "slice": 8.1,
         "desc": "评测框架、金标集与 Gate 判定",
         # B 线金标先行：首批 30 件独立标注 + 与确定性管线的交叉校验（评审方产出）
-        "modules": ["tests.test_gold_cases"],
+        # 切片 8.1：评测框架（加载 / 指标 / Gate / 跑批报告）
+        "modules": ["tests.test_gold_cases", "tests.test_gold_crosscheck",
+                    "tests.test_eval_framework"],
+    },
+    "persist": {
+        "slice": 9,
+        "desc": "持久化落库与只读 API（契约先行 · 零依赖）",
+        "modules": ["tests.test_persistence_api"],
     },
     "deploy": {
-        "slice": 9,
+        "slice": 9.1,
         "desc": "部署形态与生产就绪（灰度 / 回滚 / 压测）",
         "modules": [],
     },
@@ -136,8 +148,10 @@ SLICE_TITLES = {
     7: "贷后循环与核查",
     7.2: "RAG 文档侧（分库 / 双粒度切片 / 检索引用 / 权限模型）",
     7.5: "界面设计系统与业务界面原型",
-    8: "评测框架与 Gate 判定",
-    9: "部署与生产就绪",
+    8: "金标标注（合成案件 / 任务包 / 双盲比对）",
+    8.1: "评测框架与 Gate 判定",
+    9: "持久化落库与只读 API",
+    9.1: "部署与生产就绪",
 }
 
 GREEN = "\033[92m"

@@ -19,6 +19,10 @@ data/tmp/
 # 仓库里只保留 manifest（含 SHA256）、校准结果与映射表。
 data/external/_raw/
 
+# 评测报告产出（切片 8.1）：每次跑批生成的 JSON 存档不入库，
+# 结论以 docs/ROADMAP.md 与 docs/HANDOFF.md 的记录为准，避免仓库被产出文件淹没。
+reports/
+
 # worktree（独立工作目录，不入库）
 .worktrees/
 
