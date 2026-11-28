@@ -1531,6 +1531,7 @@ git commit -am "review: 切片 7.2 评审意见"
 | --- | --- | --- | --- |
 | 2026-11-28 | 金标 A-01（覆盖度口径） | **选项 ①：改实现对齐 PRD**——绑定级「须人工判定」计入 coverage.unresolved 与 total | 实现方按 `data/gold/ARBITRATION.md` 附件规格执行（Auditor.build 增 unresolved_bindings、CoverageSummary 增 binding_unresolved、切片 4 交叉校验断言同步改写）；金标口径不变；切片 8 的 Q-10 / GATE-1 按 PRD 口径计分 |
 | 2026-11-28 | 切片 7 咨询 C2（贷后幂等业务口径） | **不重报（维持现状）**——同事实 = 同一次 occurrence，CLOSE 后下期事实未变不再报；事实变化才新报 | 切片 7 咨询 C2 关闭；`post_monitor.scan_once` docstring 口径升为正式口径；采纳率分母不被重复预警稀释 |
+| 2026-11-28 | 金标 B1-005 / P-3（B 侧失盲处置） | **选项 ①：FG-C 新前缀重生成试点 5 件**，FG-B 1—5 的 A 侧标注作废保留 | 执行规格见 `data/gold/ARBITRATION.md` B1-005（实现方执行）；B 侧开标条件 = P-1 修订 + FG-C 落地 + B 侧工作树删 truth |
 
 ---
 ## 待评审队列
