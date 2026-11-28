@@ -27,6 +27,7 @@ from .states import (
     MAIN_PATH,
     GateBypassError,
     GateSignError,
+    HandoffIncompleteError,
     Stage,
     TransitionError,
     allowed_next,
@@ -53,6 +54,7 @@ class Harness:
         self._clock = clock or (lambda: datetime.now().isoformat(timespec="seconds"))
         self._events: List[Dict[str, Any]] = []
         self._seq = 0
+        self._handoff_seq = 0
         self.decision_audit = decision_audit or DecisionChainAuditLog(clock=self._clock)
         self._counters: Dict[str, int] = {
             "bypass_attempts": 0,     # 试图绕过闸门的次数（全部被拦）
@@ -61,6 +63,8 @@ class Harness:
             "gate_releases": 0,       # 带签核证据的合法放行次数
             "gate_escalations": 0,    # 超时升级次数
             "illegal_transitions": 0, # 非法状态迁移尝试次数
+            "sign_rejections": 0,     # 签核被拒次数（SEC-04：被拒次数须完整记录）
+            "return_rejections": 0,   # 退回被拒次数（同为闸门动作，同口径留痕）
         }
 
     # ---------------- 只读 ----------------
@@ -183,7 +187,11 @@ class Harness:
 
     # ---------------- 闸门动作 ----------------
     def sign_gate(self, gate_id: str, *, signer: Signer, note: str = "") -> GateRecord:
-        """签核放行。**只有这里能产生 APPROVED**。"""
+        """签核放行。**只有这里能产生 APPROVED**。
+
+        被拒的签核尝试同样要留事件（PRD SEC-04「被拒次数须完整记录」、
+        FR-GATE-02「拦截日志可查」）——否则审计上「没发生」与「被拦下」无法区分。
+        """
         record = self.case.gates.get(gate_id)
         if record is None:
             raise GateSignError("未知闸门：%s" % gate_id)
@@ -192,7 +200,20 @@ class Harness:
                 "案件当前停在 %s，不能签核 %s" % (self.case.stage.value, gate_id)
             )
         now = self._now()
-        record.sign(signer, now)
+        try:
+            record.sign(signer, now, case_type=self.case.case_type)
+        except GateSignError as exc:
+            self._counters["sign_rejections"] += 1
+            self._log_event(
+                kind="gate_sign_rejected",
+                actor=getattr(signer, "account_id", None) or "匿名账号",
+                gate_id=gate_id,
+                role=getattr(signer, "role", None),
+                reason=str(exc),
+                at=now,
+                note=note,
+            )
+            raise
         self._log_event(
             kind="gate_signed",
             actor=signer.account_id,
@@ -204,7 +225,7 @@ class Harness:
         return record
 
     def return_gate(self, gate_id: str, *, signer: Signer, reason: str, note: str = "") -> GateRecord:
-        """退回修改。理由必填。"""
+        """退回修改。理由必填；退回人与签核人过同样的资格校验（见 gates.py）。"""
         record = self.case.gates.get(gate_id)
         if record is None:
             raise GateSignError("未知闸门：%s" % gate_id)
@@ -213,7 +234,20 @@ class Harness:
                 "案件当前停在 %s，不能退回 %s" % (self.case.stage.value, gate_id)
             )
         now = self._now()
-        record.return_to_author(signer, reason, now)
+        try:
+            record.return_to_author(signer, reason, now, case_type=self.case.case_type)
+        except GateSignError as exc:
+            self._counters["return_rejections"] += 1
+            self._log_event(
+                kind="gate_return_rejected",
+                actor=getattr(signer, "account_id", None) or "匿名账号",
+                gate_id=gate_id,
+                role=getattr(signer, "role", None),
+                reason=str(exc),
+                at=now,
+                note=note,
+            )
+            raise
         self._log_event(
             kind="gate_returned",
             actor=signer.account_id,
@@ -284,20 +318,29 @@ class Harness:
 
         这是"编排器不能自动穿越闸门"的直接演示：调用到底，
         返回的一定是某个闸门状态（或终点），绝不会越过。
+
+        两条评审修复（R1/R2）：
+        · 案件**已经停在闸门**时直接原样返回——例行轮询不得变成一次
+          冲向放行后继状态的尝试（那会把 SEC-03 的绕过计数灌进噪声，
+          还会向调用方抛 GateBypassError，破坏"遇闸必停"的契约）。
+        · 目标闸门为 RETURNED 时要**真的重新进闸**（open 会回到 PENDING），
+          而不是静默不动却谎报已到达闸门。
         """
+        current = self.case.stage
+        if is_gate(current):
+            return current
         path = MAIN_PATH
         try:
-            index = path.index(self.case.stage)
+            index = path.index(current)
         except ValueError:
-            return self.case.stage
+            return current
         for nxt in path[index + 1:]:
             if is_gate(nxt):
-                if self.case.gates[gate_id_for(nxt)].state is GateState.NOT_REACHED:
-                    self.transition(
-                        nxt,
-                        actor=actor,
-                        note="自动推进至闸门，等待人工签核（编排器不穿越）",
-                    )
+                self.transition(
+                    nxt,
+                    actor=actor,
+                    note="自动推进至闸门，等待人工签核（编排器不穿越）",
+                )
                 return nxt
             self.transition(nxt, actor=actor, note="自动推进")
         return self.case.stage
@@ -318,40 +361,70 @@ class Harness:
         不允许用默认值补齐（PRD 8.6）。
         """
         coverage = self.case.coverage
-        coverage_summary = (
-            {
-                "judged": coverage.judged,
-                "not_applicable": coverage.not_applicable,
-                "unresolved": coverage.unresolved,
-                "total": coverage.total,
-            }
-            if coverage is not None
-            else {"judged": 0, "not_applicable": 0, "unresolved": 0, "total": 0}
+        if coverage is None:
+            # PRD 8.6：缺必填字段即中断，不得用零值伪造一份「已判定 0 条」的覆盖度
+            raise HandoffIncompleteError(
+                "案件尚未产出覆盖度统计（coverage=None），不得默认值补齐后交接"
+            )
+        coverage_summary = {
+            "judged": coverage.judged,
+            "not_applicable": coverage.not_applicable,
+            "unresolved": coverage.unresolved,
+            "total": coverage.total,
+        }
+        # human_gate_state 报的是**当前**闸门（PRD 8.6）：案件停在哪个闸门就报哪个；
+        # 不在闸门上时报**最靠后**一个已触达的闸门——取最先触达的会让 GATE-A 的
+        # APPROVED 记录一路冒充 GATE-B/C 的当前状态，下游误读为已签核（评审 R3）。
+        current_gate = next(
+            (r for r in self.case.gates.values() if r.stage is self.case.stage), None
         )
-        gate_state = {"gate_id": self.case.stage.value, "state": "NOT_REACHED", "has_signature": False}
-        for record in self.case.gates.values():
-            if record.state is not GateState.NOT_REACHED:
-                gate_state = {
-                    "gate_id": record.gate_id,
-                    "state": record.state.value,
-                    "has_signature": record.approval_evidence() is not None,
+        deepest = next(
+            (r for r in reversed(list(self.case.gates.values()))
+             if r.state is not GateState.NOT_REACHED),
+            None,
+        )
+        reported = current_gate if current_gate is not None else deepest
+        if reported is not None:
+            gate_state = {
+                "gate_id": reported.gate_id,
+                "state": reported.state.value,
+                "has_signature": reported.approval_evidence() is not None,
+            }
+        else:
+            gate_state = {"gate_id": self.case.stage.value, "state": "NOT_REACHED",
+                          "has_signature": False}
+        self._handoff_seq += 1
+        # PRD 8.6：rule_binding 每项含 rule_id + version；**含 unresolved 须标原因码**。
+        # 未判定条目也要进交接——下游若看不到「哪几条规则等人裁决」，
+        # F-01 的入待定池语义就断在交接这一步（评审 R4；切片 1 意见 11 的对齐项）。
+        rule_binding_entries = [
+            {
+                "rule_id": b.rule_id,
+                "version": b.version,
+                "binding_basis": b.binding_basis,
+                "unresolved_reason_code": None,
+            }
+            for b in self.case.rule_binding
+        ]
+        for u in self.case.unresolved:
+            reason_code = getattr(u, "reason_code", None)
+            rule_binding_entries.append(
+                {
+                    "rule_id": u.rule_id,
+                    "version": None,
+                    "binding_basis": "须人工判定",
+                    "unresolved_reason_code": (
+                        reason_code.value if hasattr(reason_code, "value") else reason_code
+                    ),
                 }
-                break
+            )
         handoff = Handoff(
-            handoff_id="HO-%s-%d" % (self.case.case_id, len(self._events) + 1),
+            handoff_id="HO-%s-%03d" % (self.case.case_id, self._handoff_seq),
             case_id=self.case.case_id,
             from_agent=from_agent,
             to_agent=to_agent,
             stage=self.case.stage,
-            rule_binding=tuple(
-                {
-                    "rule_id": b.rule_id,
-                    "version": b.version,
-                    "binding_basis": b.binding_basis,
-                    "unresolved_reason_code": None,
-                }
-                for b in self.case.rule_binding
-            ),
+            rule_binding=tuple(rule_binding_entries),
             facts_digest=tuple(dict(f) for f in self.case.facts_digest),
             citation_bundle=tuple(dict(c) for c in citation_bundle),
             open_questions=tuple(dict(q) for q in open_questions),

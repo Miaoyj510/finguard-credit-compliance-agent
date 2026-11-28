@@ -125,6 +125,7 @@ class CaseFile:
             "stage": self._stage.value,
             "rule_binding": [b.to_dict() for b in self.rule_binding],
             "unresolved": [u.to_dict() for u in self.unresolved],
+            "facts_digest": [dict(f) for f in self.facts_digest],
             "opinions": [o.to_dict() for o in self.opinions],
             "coverage": self.coverage.to_dict() if self.coverage is not None else None,
             "gates": {gid: g.to_dict() for gid, g in self.gates.items()},

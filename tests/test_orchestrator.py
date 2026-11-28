@@ -20,6 +20,7 @@ from finguard.agents.harness.states import (
 )
 from finguard.domain.case import TripleKey
 from finguard.domain.case_state import CaseFile
+from finguard.domain.opinion import CoverageSummary
 from finguard.rules.registry import RuleBinding
 
 NOW = "2026-11-26T10:00:00"
@@ -194,6 +195,9 @@ class TestHandoffFromCase(unittest.TestCase):
             h.build_handoff(from_agent="审查 Agent", to_agent="风险研判 Agent")
 
     def test_事实摘要齐备后交接通过(self):
+        """评审修订：coverage 也是必填——此前编排器在 coverage=None 时
+        伪造零值放行，违背 PRD 8.6「不得用默认值补齐」，本用例改为填齐后通过，
+        零值伪造场景由 test_harness_gate_gaps 的专项断言钉住。"""
         h = make_harness()
         h.case.rule_binding = (
             RuleBinding(
@@ -208,6 +212,8 @@ class TestHandoffFromCase(unittest.TestCase):
             {"field_path": "declared_revenue", "value": 820000,
              "confidence": "高", "conflict_state": "无"},
         )
+        h.case.coverage = CoverageSummary(
+            judged=1, not_applicable=0, unresolved=0, total=1)
         handoff = h.build_handoff(
             from_agent="审查 Agent", to_agent="风险研判 Agent"
         )

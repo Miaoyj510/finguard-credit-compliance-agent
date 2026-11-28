@@ -82,7 +82,7 @@ SUITES: Dict[str, Dict] = {
         "desc": "状态机、Handoff 契约与三处人审闸门",
         "modules": ["tests.test_harness_states", "tests.test_handoff",
                     "tests.test_gates", "tests.test_orchestrator",
-                    "tests.test_audit_probe"],
+                    "tests.test_audit_probe", "tests.test_harness_gate_gaps"],
     },
     "replay": {
         "slice": 6,

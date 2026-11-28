@@ -674,6 +674,65 @@ git commit -am "review: 切片 5 评审意见"
 # 提交后停下，由实现方合并回 feat/impl
 ```
 
+### 评审意见（由评审方填写）
+
+> 评审方：agent-b（review/impl，已快进合并至交付点 `f36331b`）。深度审阅：harness 五模块 + case_state.py 全读 + 11 组探针（R1—R11）+ PRD 8.5/8.6/8.7/6.5 逐字核对 + 切片 1/3/4 遗留决策落地检查。
+> **结论：实现与切片 5 目标一致（on target）。17 状态清单、Handoff 14 必填字段、三处闸门超时/升级链与 PRD 逐字一致；「没有绕过边」「超时只升级」「放行要证据」三个主干设计成立；切片 1 意见 11/12、切片 3 意见 8 与 A1/A2、切片 4 意见 4/5 与 A1/A3/A4 共 11 项遗留决策已全部正确落地（断言可证）。**
+> 发现 **1 高 + 3 中高 + 4 中 + 3 低**缺陷，已修复并补 20 条回归断言（先红后绿：20 条在旧代码上全红，旧断言零回归）；3 处咨询留实现方决策，5 处留档。
+> 修复后验证：**切片 5 90 / 90、全量 305 / 305 全部通过**，`--checkpoint commit` 退出码 0，`--checkpoint milestone` 六条安全探针现场全拦。
+
+| # | 位置 | 问题 | 严重度 | 处理 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `harness/orchestrator.py` `build_handoff()` | **human_gate_state 恒报最早触达的闸门**：探针 R3 证实案件停在 GATE_B/PENDING 时，交接包报的是 `GATE-A/APPROVED/has_signature=True`——本切片的全部意义是「人在环的当前状态可信」，这个字段下游（签核面板、切片 6 卷宗、GATE-3 及时率口径）会直接读成「已签核」。PRD 8.6 明写「交接所处状态的闸门状态」 | **高** | 报**案件所停的闸门**；不在闸门上时报**最靠后**一个已触达闸门（倒序取）。断言钉住 GATE_B 处三键取值 | ✅ 已修 |
+| 2 | `harness/orchestrator.py` `build_handoff()` | **未判定规则整体丢失**：`case.unresolved` 不进 `rule_binding`，且已绑定项硬编码 `unresolved_reason_code=None`——PRD 8.6「含 unresolved 须标原因码」断在交接步，F-01「须人工判定」信息到不了风险研判 Agent；`Handoff.validate()` 的未判定校验分支因此是死代码。切片 1 意见 11 的对齐项在此落地 | 中高 | unresolved 条目并入 rule_binding（rule_id + `须人工判定` + 原因码；version 允许为空——NO_VERSION_MATCH 本就无版本可写，强制填会逼出假数据）；`validate()` 的 version 必填只约束已绑定项。两条断言 | ✅ 已修 |
+| 3 | `harness/orchestrator.py` `sign_gate()/return_gate()` | **拒签零留痕**：被拒尝试直接抛异常，不写事件、不计数。PRD SEC-04 原文「**被拒次数须完整记录**」、FR-GATE-02「拦截日志可查」——没留痕，审计上「没人试」与「试了被拦」无法区分，GATE-2 评测无从复算 | 中高 | 拒签/拒退写 `gate_sign_rejected` / `gate_return_rejected` 事件（含账号、岗位、拒因）并新增 `sign_rejections` / `return_rejections` 计数；两条断言（含「拒签后合格签核不受影响」） | ✅ 已修 |
+| 4 | `harness/orchestrator.py` `build_handoff()` | **coverage 缺失时伪造零值**：`coverage=None` 被补成「已判定 0 条」并通过校验——与本模块自己声明的设计哲学（「看起来完整比明确缺失危险」「不用默认值补齐」）直接冲突，PRD 8.6 同文重复强调 | 中 | coverage=None → `HandoffIncompleteError` 中断交接。原断言 `test_事实摘要齐备后交接通过` 改写为填齐 coverage 后通过（口径修正，同切片 3 零营收断言改写先例），另加专项用例 | ✅ 已修 |
+| 5 | `harness/orchestrator.py` `auto_advance()` | **闸门 RETURNED 时静默空转**：探针 R1 证实退回并落回 S3 后，`auto_advance()` 返回 GATE_A 但案件停在 S3、闸门仍是 RETURNED——「退回→修订→重新提交」回路靠它走不通，且返回值误导调用方 | 中 | 目标闸门非 NOT_REACHED 时也真实推进（open 回 PENDING、submissions+1）。断言：退回后 auto_advance 重新进闸并可再签核放行 | ✅ 已修 |
+| 6 | `harness/orchestrator.py` `auto_advance()` | **停在闸门时再调用 = 一次绕行尝试**：探针 R2 证实第二次 `auto_advance()` 冲放行后继状态，抛 `GateBypassError` 且 `bypass_attempts+1`——编排器例行轮询会给 SEC-03 灌噪声、破坏「遇闸必停」契约（该函数不应抛绕行异常，应原样停在闸门口） | 中 | 案件已在闸门上直接原样返回。断言：连续轮询计数器不变 | ✅ 已修 |
+| 7 | `harness/gates.py` `return_to_author()` | **退回不过资格校验**：只查 account_id 非空——探针 R6 证实客户经理、批量导入式账号都能退回。退回与签核同为闸门签核动作（结论取反也是结论）：无资格者可随意拖死案件流，退回痕迹无设备指纹/IP 不可归责（FR-GATE-03 的「动作绑定实名+指纹」不只约束放行方向） | 中 | 退回与签核共用 `_check_identity` + `_check_qualification`（FR-GATE-02/03、G-5 全套）；登记 `returned_device_fingerprint` / `returned_ip` 并进 to_dict。三条断言 | ✅ 已修 |
+| 8 | `harness/gates.py` `sign()` 案件类型校验 | **「三重校验」第三重是死的**：拿闸门规格静态常量 `required_case_type` 比对签核人授权，**本案的 `case.case_type` 从头到尾不参与**。探针 R11 证实：一个只授权 post_monitoring 的账号可以给对公授信案件签 GATE-A。FR-GATE-02 的「案件类型」校验对象应是案件 | 中 | `sign()/return_to_author()` 增 `case_type` 关键字（Harness 传 `case.case_type`）；不传时退回规格值（直接操作记录的旧调用兼容，`test_案件类型不符被拒` 等原断言不破坏）。两条断言：本案类型有授权可签、无授权被拒 | ✅ 已修 |
+| 9 | `harness/gates.py` 时间戳口径 | **三处洞**（探针 R9/R10）：① `open()` 用 `strptime(now, "%Y-%m-%dT%H:%M:%S")`——微秒精度时钟直接 `ValueError` 崩进编排器（白名单检查之后、写阶段之前，半途而废且不是 HarnessError）；② 显式 deadline **原样入库**，`check_timeout` 字符串比较对异构格式静默失效（永不超时→永不升级）；③ `sign/return` 的 `now` 不校验——`signed_at="昨天下午"` 是 truthy，**放行证据的时间戳项形同虚设**，FR-GATE-03 时间戳可追责失守 | 低（三处小洞合并） | 统一 `_parse_time`：fromisoformat + 带时区归一为 naive UTC + 坏值抛 `GateSignError`；open/sign/return/check_timeout 全部先解析后落笔（不产生半成品状态）。五条断言（微秒/时区/异形规范化/坏值拒/不留半成品） | ✅ 已修 |
+| 10 | `harness/orchestrator.py` `handoff_id` | 取 `len(events)+1`，**无迁移连着 build 两次即撞号**（PRD 8.6「全局唯一、可追溯」）。测试 `test_事实摘要齐备后交接通过` 恰好连 build 两次就能复现 | 低 | 编排器专属序号计数器 `HO-<case_id>-<NNN>`。断言：连续 build 编号唯一 | ✅ 已修 |
+| 11 | `domain/case_state.py` `to_dict()` | 漏序列化 `facts_digest`（PRD 8.4 结构字段，切片 6 卷宗按 to_dict 取数即缺层）；`harness/__init__.py` 无文件尾换行 | 低 | 已补 / 已修 | ✅ 已修 |
+| C1 | `harness/gates.py` `sign()` 岗位校验 | **咨询：升级链岗位可「抢跑」签核**。岗位校验接受 `required_role` 或 `escalation_chain` 成员——探针 R8 证实上级岗**未经任何超时升级**即可直接签核（实现取宽口径）。PRD 8.7 的签核资格列只写基础岗位，升级链写在超时路径里——上级提前接签在治理上是否等同「L1 放弃签核权」，是口径决策 | 中（咨询） | 若按 PRD 字面：`role in escalation_chain` 的分支加 `len(self.escalations) > 0` 条件即可（一行改动 + 一条断言）。评审方不擅自收紧，留实现方与 PRD 责任人定夺 | ⏸ 留实现方决策 |
+| C2 | `agents/auditor.py` `build(case_id=...)` | **咨询：跨 build 的意见编号会撞**。`OP-<case_id>-<seq>` 的 seq 按**本次 build** 的 opinions 长度递增——GATE-A 退回后重新成稿再 build，产出同号意见；切片 6 卷宗以 opinion_id 建键会静默覆盖（正是切片 4 意见 5 要防的事，只解决了 build 内，没解决跨轮次） | 低（咨询） | 建议 build 增 `start_seq` 由编排器按轮次推进，或卷宗键改 `opinion_id + 修订轮`。属切片 6 契约，留实现方规划 | ⏸ 留切片 6 |
+| C3 | `harness/orchestrator.py` `record_amendment()` | **咨询：改写留痕是「自觉登记」**——`amended_by` 是自由字符串、无资格校验，且与意见的 `origin=HUMAN_AMENDED` 无联动校验（改 origin 不强制登记 amendment）。FR-GATE-06 的强制力最终要落在卷宗齐全性校验上 | 低（咨询） | 建议切片 6 卷宗组装时校验「origin=HUMAN_AMENDED 的意见必须有对应 amendment 记录（含双版本与理由）」，此处不重复建闸。留实现方规划 | ⏸ 留切片 6 |
+
+#### 留档（不阻断）
+
+| # | 项 | 说明 |
+| --- | --- |
+| A1 | `auto_advance` 只沿 MAIN_PATH | 分支态（S1_MANUAL_CONFLICT / S2_UNRESOLVED）与贷后段（POST_LOOP→S7 之后按业务分支走）需显式 `transition()`——行为合理（分支推进属切片 7 业务流），但 docstring 未写明「主干之外不适用」。建议切片 7 落 GATE-C 业务流时一并写清 |
+| A2 | `verify.py` 绿行口径 | skipped>0 时打印「passed / total 全部通过」，passed 不含 skipped，措辞轻微不准（当前无 skipped，不触发） |
+| A3 | ROADMAP 勾选时序 | 切片 5 验收框在评审前已全 ☑（同切片 3 留档 A4）——铁律「评审是闸」，建议实现方合并评审后再标 |
+| A4 | 签核「场景类拒绝」未留痕 | 案件不在闸门口 / 未知闸门的拒绝走的是调用上下文错误路径，未计留痕（本意见 3 修的是资格类拒绝）。SEC-04 口径若要求「凡尝试皆记录」，切片 8 评测统一 |
+| A5 | `required_case_type` 降级为规格注记 | 意见 8 修复后该字段不再参与强制校验（保留作闸门服务类型的文档值）。切片 9 接真实权限体系时，以本案类型为准重建配置 |
+
+#### 「评审方请确认」八项的答复
+
+1. **17 状态是否与 PRD 8.5 逐字一致**：已逐行对照 PRD 8.5 表（17 行）与图 8-1：状态码、名称（STAGE_LABELS）、允许的下一状态、必经闸门列**全部一致**；`S10` 无出边、`POST_LOOP→S6` 回流亦有断言。无遗漏、无多余。
+2. **放行要证据是否够，要不要闸门状态与签核记录物理分离**：够用。单进程内存里「物理分离」是伪命题——分离的字段同样可改。真正的边界按本模块自己的说明：签核记录 + 不可篡改事件日志（切片 6）。本次把证据链上两个真洞补了（意见 9 的垃圾时间戳可过闸、意见 8 的类型校验是死的），`approval_evidence` 四项缺一不可的机制经探针复测成立。
+3. **令牌 + 只读 property 是否够，还是切片 6 改为事件日志重放推导**：本切片保持现状；建议切片 6 把「重放推导 stage」做成**校验**而非唯一写入口——从事件日志重放算出应有 stage，与 `CaseFile._stage` 比对，不一致即视同 F-13（链断裂）停案告警。这样内存约束的价值（让绕过必须走可审计路径）与日志权威（让审计可信）各得其所，不用假装内存有安全属性。
+4. **超时时长与升级链是否与 PRD 8.7 一致**：一致。GATE-A 24h「上级合规负责人→风控负责人」、GATE-B 24h「风险管理部负责人」、GATE-C 48h「贷后管理部负责人→分管行长」，与 8.7 表及第 1602—1608 行流程表逐字对上；`GateState` 无自动放行取值，`check_timeout` 链顶保持 PENDING（断言 + 探针双确认）。
+5. **空数组 vs 缺失的口径**：符合预期，认可。`rule_binding`/`facts_digest` 空即中断、`citation_bundle`/`open_questions` 空数组合法（「确实没有」是合法表达）——与 PRD 8.6 校验规则列一致。补一句边界：quote_required 规则引用空 citation_bundle 不在 Handoff 层拦（引用完整性归切片 4 签核闸门逐条负责，交接层只管契约完备），当前分工不变。
+6. **quote_required 落地方式是否接受**：接受。规则级标志 + 种子默认 False + 切片 9 逐条标注，与切片 4 决策一致；闸门按 `rule.quote_required` 强制 quotes 非空有断言，`build()` 只取一次 `decision_ready()` 的审计噪声修复也确认。
+7. **`OP-<case_id>-<seq>` 卷宗键是否够用**：单轮够用，跨轮不够——退回重生成会撞号（咨询 C2），切片 6 建键时必须带修订维度。
+8. **`bypass_edges()` 合法前驱口径是否与图 8-1 一致**：一致。「放行后继的合法前驱 = 该闸门 + 下一闸门退回落点」与图上 GATE_B→S4 的退回边吻合；自检返回空元组且 `test_不存在绕行边` 钉住。切片 6 接不可篡改日志后建议把该自检挂进回放校验（日志重建的拓扑过一遍 bypass_edges，防「日志说闸门被绕过」无人发现）。
+
+#### 验证证据（本评审会话实际运行）
+
+| 命令 | 结果 |
+| --- | --- |
+| `python scripts/verify.py --slice 5`（交付点复现） | 70 / 70，与 HANDOFF 一致 |
+| `python scripts/verify.py` / `--checkpoint milestone`（修复前） | 285 / 285；六条安全探针全拦 |
+| 探针 R1—R11（疑点逐条实打） | 10 处确认复现，1 处（R8 升级链抢签）转咨询 |
+| 新增 20 条断言在旧代码上运行 | **20 条全红**（14 failures + 6 errors），逐条对应上表缺陷；旧断言未动时全量 285 仍绿（零既有回归） |
+| `python scripts/verify.py --slice 5`（修复后） | **90 / 90**，退出码 0 |
+| `python scripts/verify.py` / `--checkpoint commit`（修复后） | **305 / 305**，退出码 0 |
+| `--checkpoint milestone`（修复后） | 六条探针仍全拦（修复未削弱任何既有拦截面） |
+
+> 给实现方：合并后请把切片 5「验证命令」预期从 **70 / 70** 同步为 **90 / 90**、全量 **285 → 305**；待评审队列行同步；**C1（升级链抢签）请给决策**，C2 / C3 请纳入切片 6 规划输入；ROADMAP 切片 5 验收框建议合并评审后再标 ✅。本评审未改 PRD / ROADMAP / 验收标准。一处既有断言改写（`test_事实摘要齐备后交接通过` 补 coverage），理由与口径见意见 4，属「断言跟随契约」而非放宽。
+
 ---
 ## 待评审队列
 
