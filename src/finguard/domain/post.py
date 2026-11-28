@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 __all__ = [
     "PostDisposition",

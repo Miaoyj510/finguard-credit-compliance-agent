@@ -431,3 +431,103 @@ class TestAnalogReferenceOnly(unittest.TestCase):
         self.assertEqual(chunk.applied_rule_version, "3.1.0")
         self.assertEqual(chunk.disposition, "调整关注")
         self.assertTrue(chunk.is_reference_only)
+
+
+class TestReviewGaps72(unittest.TestCase):
+    """切片 7.2 评审补充断言（R-G1—R-G4，先红后绿）。"""
+
+    def test_处罚案例携带当时版本与时间戳并可被类比检索(self):
+        """R-G1：HANDOFF 声明入库必留「时间戳/当时规则版本/处置结果」，
+        但 PenaltyCaseRecord 根本没有前两个字段——处罚案例永远过不了
+        AnalogRetriever 的版本闸，等于整类语料死在库里。"""
+        store = DocStore(build_penalty_case_chunks([
+            PenaltyCaseRecord(
+                case_id="CASE-2024-0001", cause="贷后检查记录缺失",
+                circumstances="连续两期未按要求提交贷后检查表",
+                penalty="通报并扣减绩效", source="本机构内部处罚通报",
+                applied_rule_id="R-PM-001", applied_rule_version="1.0.0",
+                observed_at="2024-03-02",
+            ),
+        ]))
+        hits = AnalogRetriever(store).search("贷后检查记录缺失")
+        self.assertTrue(hits, "带版本的处罚案例应可被类比检索")
+        self.assertEqual(hits[0].applied_rule_version, "1.0.0")
+        self.assertEqual(hits[0].observed_at, "2024-03-02")
+        self.assertTrue(hits[0].is_reference_only)
+
+    def test_历史类切片禁旗关闭即拒收(self):
+        """R-G2：is_reference_only 靠入库方自觉=没有保证。
+        一面关掉禁旗的历史意见会被 DocRetriever 当制度依据返回。"""
+        chunk = DocChunk(
+            doc_id="DOC-H", chunk_id="DOC-H-1",
+            doc_type=DocType.OPINION_HISTORY, chunk_level=ChunkLevel.OPINION,
+            title="历史意见", source_ref="历史审查意见库 OP-1",
+            quote="申报营收与流水偏离的处理口径", version="1.0",
+            is_reference_only=False,
+        )
+        with self.assertRaises(ValueError):
+            DocStore().add(chunk)
+        penalty = DocChunk(
+            doc_id="DOC-P", chunk_id="DOC-P-1",
+            doc_type=DocType.PENALTY_CASE, chunk_level=ChunkLevel.CASE,
+            title="处罚案例", source_ref="处罚案例库 C-1",
+            quote="案由与处罚结果", version="1.0",
+            is_reference_only=False,
+        )
+        with self.assertRaises(ValueError):
+            DocStore().add(penalty)
+
+    def test_L5只读生效版文档(self):
+        """R-G3：PRD 9.4 文档库列 L5 授信审查岗=「读生效版本」，
+        实现把 L5 当全量读——失效制度对授信岗可见会误导信贷决策。"""
+        common = dict(
+            doc_id="DOC-V", doc_type=DocType.INTERNAL_POLICY,
+            chunk_level=ChunkLevel.CLAUSE, title="规程",
+            source_ref="《规程》", quote="申报月营收与账户流水偏离核查要求",
+            version="1.0",
+        )
+        store = DocStore([
+            DocChunk(chunk_id="DOC-V-now", effective_from="2025-07-01",
+                     effective_to=None, **common),
+            DocChunk(chunk_id="DOC-V-old", effective_from="2023-01-01",
+                     effective_to="2025-06-30", **common),
+        ])
+        l5 = DocRetriever(store).search("申报月营收 流水 偏离", role=Role.L5.value)
+        self.assertTrue(l5)
+        self.assertTrue(all(c.chunk_id == "DOC-V-now" for c in l5),
+                        "L5 看到了失效版制度")
+        l2 = DocRetriever(store).search("申报月营收 流水 偏离", role=Role.L2.value)
+        self.assertEqual(len(l2), 2)
+
+    def test_检索命中携带内容哈希供出处复验(self):
+        """评审确认项 2 的落地：PRD 9.3 的 content_hash 应随命中返回——
+        引用防篡改复验（意见依据与卷宗 L3 对账）依赖它。"""
+        store = DocStore([
+            DocChunk(
+                doc_id="DOC-H1", chunk_id="DOC-H1-C001",
+                doc_type=DocType.INTERNAL_POLICY, chunk_level=ChunkLevel.CLAUSE,
+                title="规程", source_ref="《规程》第四条",
+                quote="申报月营收与账户流水合计偏离超过阈值的核查要求",
+                version="2.0", effective_from="2025-07-01", effective_to=None,
+            ),
+        ])
+        hits = DocRetriever(store).search("申报月营收 流水 偏离")
+        self.assertTrue(hits)
+        self.assertEqual(hits[0].content_hash, store.get("DOC-H1-C001").content_hash)
+        self.assertIn("content_hash", hits[0].to_dict())
+
+    def test_要素卡尺寸在入库时校验(self):
+        """R-G4：80—300 字是自建口径 [D]，但只在测试里验了演示数据，
+        入库路径不设防——5 个字的要素卡会静默进库。"""
+        with self.assertRaises(ValueError):
+            chunk_elements("DOC-E", "要素清单", "《要素表》", "1.0", [
+                ElementSpec(element_id="E-1", element_name="营收",
+                            criteria="口径", required_evidence_fields=("a",),
+                            text="太短"),
+            ])
+        with self.assertRaises(ValueError):
+            chunk_elements("DOC-E", "要素清单", "《要素表》", "1.0", [
+                ElementSpec(element_id="E-2", element_name="营收",
+                            criteria="口径", required_evidence_fields=("a",),
+                            text="很长" * 200),
+            ])

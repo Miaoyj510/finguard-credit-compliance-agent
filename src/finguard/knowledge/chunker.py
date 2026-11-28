@@ -177,9 +177,20 @@ def chunk_elements(
     sensitivity: Sensitivity = Sensitivity.INTERNAL,
     ingested_at: Optional[str] = None,
 ) -> Tuple[DocChunk, ...]:
-    """把要素清单切成**要素级**切片（一要素一卡）。"""
+    """把要素清单切成**要素级**切片（一要素一卡）。
+
+    评审修复 R-G4：80—300 字是自建口径 [D]，原先只在测试里验了演示数据，
+    入库路径不设防——过短/过长的要素卡会静默进库，评测口径失去结构性。
+    """
     chunks: List[DocChunk] = []
     for spec in specs:
+        size = len(spec.text)
+        if not ELEMENT_SIZE_BOUNDS[0] <= size <= ELEMENT_SIZE_BOUNDS[1]:
+            raise ValueError(
+                "要素卡 %s 长度 %d 超出 %d—%d 字口径（PRD 9.2 [D]）：%r"
+                % (spec.element_id, size, ELEMENT_SIZE_BOUNDS[0],
+                   ELEMENT_SIZE_BOUNDS[1], spec.text[:24])
+            )
         chunks.append(
             DocChunk(
                 doc_id=doc_id,

@@ -100,7 +100,7 @@ SUITES: Dict[str, Dict] = {
         "slice": 7,
         "desc": "贷后常驻循环、核查初核与 GATE-C 处置四档",
         "modules": ["tests.test_post_monitor", "tests.test_verifier",
-                    "tests.test_post_flow"],
+                    "tests.test_post_flow", "tests.test_post_gaps"],
     },
     "rag": {
         "slice": 7.2,

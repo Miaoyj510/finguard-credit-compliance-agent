@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .corpus import ChunkLevel, DocChunk, DocStore, DocType, Sensitivity
-from .permissions import can_read_documents
+from .permissions import Role, can_read_documents
 
 __all__ = [
     "RetrievalHit",
@@ -41,6 +41,9 @@ RETRIEVAL_FIELDS: Tuple[str, ...] = (
     "doc_id", "chunk_id", "source_ref", "version", "quote",
     "chunk_level", "doc_type", "parent_label", "score", "is_reference_only",
     "applied_rule_id", "applied_rule_version", "observed_at", "disposition",
+    # 评审确认项 2 落地：PRD 9.3 的 content_hash 随命中返回——
+    # 意见引用与卷宗 L3 的防篡改复验依赖它（拿到引用即可复核出处未被改）。
+    "content_hash",
 )
 
 _SPLIT_RE = re.compile(r"[\s,，。；、：:()（）【】\[\]“”\"'｜|/\\·]+")
@@ -99,6 +102,7 @@ class RetrievalHit:
     applied_rule_version: str = ""
     observed_at: str = ""
     disposition: str = ""
+    content_hash: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -116,6 +120,7 @@ class RetrievalHit:
             "applied_rule_version": self.applied_rule_version,
             "observed_at": self.observed_at,
             "disposition": self.disposition,
+            "content_hash": self.content_hash,
         }
 
 
@@ -135,6 +140,7 @@ def _to_hit(chunk: DocChunk, score: float) -> RetrievalHit:
         applied_rule_version=chunk.applied_rule_version,
         observed_at=chunk.observed_at or "",
         disposition=chunk.disposition,
+        content_hash=chunk.content_hash,
     )
 
 
@@ -164,6 +170,11 @@ class DocRetriever:
                 return False
             acl = chunk.acl
             if acl and ("role:%s" % role) not in acl:
+                return False
+            # 评审修复 R-G3：PRD 9.4 文档库列 L5 授信审查岗 = 「读生效版本」。
+            # 失效制度对授信岗可见会误导信贷决策；「生效」口径与规则库一致
+            # （effective_to 为空 = 长期生效）。
+            if role == Role.L5.value and chunk.effective_to is not None:
                 return False
         if product_type is not None and chunk.product_scope:
             if "*" not in chunk.product_scope and product_type not in chunk.product_scope:
@@ -258,6 +269,7 @@ class AnalogRetriever:
                     applied_rule_id=hit.applied_rule_id,
                     applied_rule_version=hit.applied_rule_version,
                     observed_at=hit.observed_at, disposition=hit.disposition,
+                    content_hash=hit.content_hash,
                 )
             )
         return tuple(hits)

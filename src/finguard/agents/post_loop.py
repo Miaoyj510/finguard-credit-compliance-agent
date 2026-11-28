@@ -102,8 +102,21 @@ class PostFlow:
         self.harness.transition(Stage.S7, actor="编排器", note="扫描命中，生成预警")
         return produced
 
+    def _guard_case(self, alert: Alert, action: str) -> None:
+        """核查/处置只接受**本案**预警（评审 R-P2）。
+
+        他案预警进来会把核查记录、处置结果与签核事件写进错误的案件卷宗——
+        调用方配对错误该抛，不该静默串案。
+        """
+        if alert.case_id != self.harness.case.case_id:
+            raise ValueError(
+                "%s的预警属于案件 %r，与当前案件 %r 不符"
+                % (action, alert.case_id, self.harness.case.case_id)
+            )
+
     def verify(self, alert: Alert, current_facts: Mapping[str, Any]) -> Verification:
         """S7 → S8 核查初核。"""
+        self._guard_case(alert, "核查")
         if self.harness.stage is not Stage.S7:
             raise GateBypassError("预警须先生成才能核查，当前 %s" % self.harness.stage.value)
         self.harness.transition(Stage.S8, actor="核查 Agent", note="进入核查初核")
@@ -118,6 +131,7 @@ class PostFlow:
         detail: str,
     ) -> UnverifiedReason:
         """登记"未核查"及原因（FR-POST-06：状态与原因都不得沉默）。"""
+        self._guard_case(alert, "未核查登记")
         reason = self.verifier.mark_unverified(alert, reason_code, detail)
         self._unverified.append(reason)
         return reason
@@ -144,6 +158,7 @@ class PostFlow:
         **处置必须发生在签核之后**：闸门没放行就落处置，`transition(S9)` 会被拦。
         「关闭」档必须写理由（作业卡片要求引用核查结论）。
         """
+        self._guard_case(alert, "处置")
         if not isinstance(disposition, PostDisposition):
             raise ValueError("处置档位必须是四档之一：%r" % (disposition,))
         if disposition is PostDisposition.CLOSE:

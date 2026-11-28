@@ -39,13 +39,22 @@ class OpinionHistoryRecord:
 
 @dataclass(frozen=True)
 class PenaltyCaseRecord:
-    """一条处罚案例。"""
+    """一条处罚案例。
+
+    评审修复 R-G1：``observed_at`` / ``applied_rule_id`` / ``applied_rule_version``
+    原先**不存在**——而本模块自己声明「入库必须保留时间戳、当时适用的规则版本、
+    处置结果」，AnalogRetriever 又对缺当时版本者一律不返回。三个字段缺席的后果是
+    处罚案例这一整类语料入库即死、永远检索不到。字段补齐后与历史意见同口径。
+    """
 
     case_id: str
     cause: str
     circumstances: str
     penalty: str
     source: str
+    applied_rule_id: str = ""
+    applied_rule_version: str = ""
+    observed_at: Optional[str] = None
     doc_id: str = "DOC-HIST-PENALTY"
     source_ref: str = "处罚案例库"
     version: str = "1.0"
@@ -110,6 +119,9 @@ def build_penalty_case_chunks(
                 sensitivity=record.sensitivity,
                 ingested_at=ingested_at,
                 is_reference_only=True,
+                applied_rule_id=record.applied_rule_id,
+                applied_rule_version=record.applied_rule_version,
+                observed_at=record.observed_at,
             )
         )
     return tuple(chunks)
