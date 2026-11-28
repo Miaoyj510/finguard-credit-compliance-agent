@@ -87,7 +87,8 @@ SUITES: Dict[str, Dict] = {
     "replay": {
         "slice": 6,
         "desc": "事件日志、六层卷宗与案件回放",
-        "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay"],
+        "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay",
+                    "tests.test_replay_audit_gaps"],
     },
     "post": {
         "slice": 7,

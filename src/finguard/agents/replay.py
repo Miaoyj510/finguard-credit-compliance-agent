@@ -29,11 +29,18 @@ __all__ = ["ConclusionTrace", "ReplayResult", "ReplayEngine"]
 
 @dataclass(frozen=True)
 class ConclusionTrace:
-    """重放重建出的结论轨迹。"""
+    """重放重建出的结论轨迹。
+
+    ``amendments`` 是人工改写留痕（FR-GATE-06 双版本）的三元组
+    （gate_id, rule_id, rule_version）：事件日志里有 ``opinion_amended``
+    而卷宗 L5 里对应 amendment 消失时，对账必须报不一致——
+    「删除原始意见」走合法覆盖写也要能检出。
+    """
 
     stages: Tuple[str, ...] = ()
     signatures: Tuple[Tuple[str, str, str], ...] = ()
     opinion_ids: Tuple[str, ...] = ()
+    amendments: Tuple[Tuple[str, str, str], ...] = ()
     final_stage: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -41,6 +48,7 @@ class ConclusionTrace:
             "stages": list(self.stages),
             "signatures": [list(s) for s in self.signatures],
             "opinion_ids": list(self.opinion_ids),
+            "amendments": [list(a) for a in self.amendments],
             "final_stage": self.final_stage,
         }
 
@@ -50,6 +58,7 @@ class ConclusionTrace:
             stages=tuple(data.get("stages", ())),
             signatures=tuple(tuple(s) for s in data.get("signatures", ())),
             opinion_ids=tuple(data.get("opinion_ids", ())),
+            amendments=tuple(tuple(a) for a in data.get("amendments", ())),
             final_stage=data.get("final_stage", ""),
         )
 
@@ -71,7 +80,18 @@ class ReplayResult:
 
     @property
     def usable_for_audit(self) -> bool:
-        """能否用于监管取证：链完整 + 六层齐全 + 轨迹与卷宗一致，三者缺一不可。"""
+        """能否用于监管取证：链完整 + 六层齐全 + 轨迹与卷宗一致，三者缺一不可。
+
+        评审修复（RP1/RP7）：**空窗口一律不可取证**。重放区间没有事件、
+        或事件里重放不出任何结论内容（阶段/签核/意见/改写全空）时，
+        「一致性」是空集合上的恒真——不存在的案件、越界的 seq 区间都会
+        被误判为可取证。取证判定必须建立在**重放出了东西**的前提上。
+        """
+        if not self.events:
+            return False
+        trace = self.trace
+        if not (trace.stages or trace.signatures or trace.opinion_ids or trace.amendments):
+            return False
         return (
             self.chain_ok
             and self.completeness is Completeness.COMPLETE
@@ -108,6 +128,7 @@ class ReplayEngine:
         stages: List[str] = []
         signatures: List[Tuple[str, str, str]] = []
         opinions: List[str] = []
+        amendments: List[Tuple[str, str, str]] = []
         for event in events:
             payload = event.payload or {}
             kind = event.kind
@@ -129,19 +150,31 @@ class ReplayEngine:
                 opinion_id = payload.get("opinion_id")
                 if opinion_id:
                     opinions.append(opinion_id)
+            elif kind == "opinion_amended":
+                gate_id = payload.get("gate_id")
+                if gate_id:
+                    amendments.append(
+                        (
+                            gate_id,
+                            payload.get("rule_id") or "",
+                            payload.get("rule_version") or "",
+                        )
+                    )
         return ConclusionTrace(
             stages=tuple(stages),
             signatures=tuple(signatures),
             opinion_ids=tuple(opinions),
+            amendments=tuple(sorted(amendments)),
             final_stage=stages[-1] if stages else "",
         )
 
     @staticmethod
     def dossier_trace(dossier: Dossier) -> ConclusionTrace:
-        """从卷宗读出当时记录的轨迹（L4 意见 + L5 签核与阶段轨迹）。"""
+        """从卷宗读出当时记录的轨迹（L4 意见 + L5 签核、阶段轨迹与改写留痕）。"""
         stages: Tuple[str, ...] = ()
         signatures: List[Tuple[str, str, str]] = []
         opinions: Tuple[str, ...] = ()
+        amendments: List[Tuple[str, str, str]] = []
         l5 = dossier.read(DossierLayer.L5)
         if l5 is not None:
             stages = tuple(l5.payload.get("stage_trail", ()))
@@ -151,6 +184,14 @@ class ReplayEngine:
                 if gate.get("signed_by"):
                     signatures.append(
                         (gate_id, gate.get("signed_by"), gate.get("signed_at") or "")
+                    )
+                for a in gate.get("amendments", ()) or ():
+                    amendments.append(
+                        (
+                            gate_id,
+                            (a or {}).get("rule_id") or "",
+                            (a or {}).get("rule_version") or "",
+                        )
                     )
         l4 = dossier.read(DossierLayer.L4)
         if l4 is not None:
@@ -162,17 +203,9 @@ class ReplayEngine:
             stages=stages,
             signatures=tuple(signatures),
             opinion_ids=opinions,
+            amendments=tuple(sorted(amendments)),
             final_stage=stages[-1] if stages else "",
         )
-
-    @staticmethod
-    def _suffix_matches(replayed: Sequence[Any], recorded: Sequence[Any]) -> bool:
-        """重放区间可能只是全程的后缀，因此与卷宗轨迹**按后缀比对**。"""
-        if not replayed:
-            return True
-        if len(replayed) > len(recorded):
-            return False
-        return tuple(recorded[len(recorded) - len(replayed):]) == tuple(replayed)
 
     # ---------------- 回放 ----------------
     def replay(
@@ -181,20 +214,37 @@ class ReplayEngine:
         from_seq: int = 1,
         to_seq: Optional[int] = None,
     ) -> ReplayResult:
-        """按 seq 重放指定案件，返回结论轨迹与可取证性判定。"""
-        events = self.log.since(case_id, from_seq)
-        if to_seq is not None:
-            events = tuple(e for e in events if e.seq <= to_seq)
+        """按 seq 重放指定案件，返回结论轨迹与可取证性判定。
+
+        对账口径（评审修复 RP2）：**始终用案件全部事件重建完整轨迹与卷宗比对**，
+        重放窗口只决定「这次输出哪一段轨迹」。此前按「窗口轨迹 vs 卷宗轨迹」做
+        后缀比对，导致 PRD 8.9「重放至任意节点」的前缀 / 中间窗口
+        （指定 to_seq）永远判不一致，而空窗口反而恒真通过——方向整个反了。
+        窗口轨迹本身就是完整轨迹的连续子段（同源事件、同口径过滤），
+        完整轨迹与卷宗一致即保证任意窗口输出与历史一致。
+        """
+        if self.dossier.case_id and self.dossier.case_id != case_id:
+            raise ValueError(
+                "回放引擎绑定的卷宗属于案件 %r，不能用于重放案件 %r（调用方配对错误）"
+                % (self.dossier.case_id, case_id)
+            )
+        all_events = self.log.events(case_id)
+        events = tuple(
+            e for e in all_events
+            if e.seq >= from_seq and (to_seq is None or e.seq <= to_seq)
+        )
         trace = self.rebuild_trace(events)
+        full = self.rebuild_trace(all_events)
 
         chain = self.log.verify()
         verification = self.dossier.verify()
         recorded = self.dossier_trace(self.dossier)
 
         matches = (
-            self._suffix_matches(trace.stages, recorded.stages)
-            and self._suffix_matches(trace.signatures, recorded.signatures)
-            and self._suffix_matches(trace.opinion_ids, recorded.opinion_ids)
+            full.stages == recorded.stages
+            and full.signatures == recorded.signatures
+            and full.opinion_ids == recorded.opinion_ids
+            and full.amendments == recorded.amendments
         )
 
         return ReplayResult(

@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from dataclasses import dataclass
@@ -130,10 +131,21 @@ class Dossier:
         允许覆盖是因为 L4 / L5 / L6 会在流程推进中多次追加内容
         （如退回后重新提交、贷后预警追加）。**每次写入都留新哈希**，
         旧版本不在卷宗内保留——旧版本在事件日志里（只追加）。
+
+        两条评审修复：
+        · payload **深拷贝入库**——调用方事后改动自己的 dict 不会把合法层
+          变成「被篡改」（与事件日志同口径）。
+        · **空映射拒写**——「写了但什么都没有」的层会让六层齐全性形同虚设
+          （空 L3 也算有依据文档层）。层内容至少要有结构；半层（如贷前的 L6
+          只有处置决定）由 payload 构造器给出显式空字段表达，不走这里。
         """
         if not isinstance(layer, DossierLayer):
             raise ValueError("未知层：%r" % (layer,))
-        body = dict(payload)
+        if not isinstance(payload, Mapping):
+            raise ValueError("层 %s 内容须为映射，收到 %r" % (layer.value, type(payload).__name__))
+        if len(payload) == 0:
+            raise ValueError("层 %s 内容为空：空层不得计入齐全性（PRD 8.9 缺层即不完整）" % layer.value)
+        body = copy.deepcopy(dict(payload))
         snapshot = LayerSnapshot(
             layer=layer,
             payload=body,
@@ -193,7 +205,7 @@ class Dossier:
             layer = DossierLayer(item["layer"])
             dossier._layers[layer] = LayerSnapshot(
                 layer=layer,
-                payload=dict(item.get("payload", {})),
+                payload=copy.deepcopy(dict(item.get("payload", {}))),
                 content_hash=item.get("content_hash", ""),
                 written_at=item.get("written_at", ""),
             )
