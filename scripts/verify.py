@@ -115,7 +115,8 @@ SUITES: Dict[str, Dict] = {
     "eval": {
         "slice": 8,
         "desc": "评测框架、金标集与 Gate 判定",
-        "modules": [],
+        # B 线金标先行：首批 30 件独立标注 + 与确定性管线的交叉校验（评审方产出）
+        "modules": ["tests.test_gold_cases"],
     },
     "deploy": {
         "slice": 9,
