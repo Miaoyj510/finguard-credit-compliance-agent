@@ -189,8 +189,22 @@ class DocStore:
         for chunk in chunks:
             self.add(chunk)
 
+    #: 历史意见与处罚案例**只能**以「参考类比」身份入库（FR-RAG-08）。
+    #: 评审修复 R-G2：禁旗原先靠入库方自觉——关掉旗的历史意见会被
+    #: DocRetriever 当制度依据返回，「历史不作判定依据」就成了一纸声明。
+    REFERENCE_ONLY_TYPES: Tuple["DocType", ...] = (
+        DocType.OPINION_HISTORY,
+        DocType.PENALTY_CASE,
+    )
+
     def add(self, chunk: DocChunk) -> DocChunk:
         assert_no_conclusion_fields(chunk.metadata(), "文档切片 %s" % chunk.chunk_id)
+        if chunk.doc_type in self.REFERENCE_ONLY_TYPES and not chunk.is_reference_only:
+            raise ValueError(
+                "文档切片 %s 属 %s：历史意见与处罚案例只能以参考类比入库"
+                "（is_reference_only 必须为真，FR-RAG-08）"
+                % (chunk.chunk_id, chunk.doc_type.value)
+            )
         if chunk.chunk_id in self._chunks:
             raise ValueError("切片重复：%s" % chunk.chunk_id)
         self._chunks[chunk.chunk_id] = chunk

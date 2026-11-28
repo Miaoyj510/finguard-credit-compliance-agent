@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -92,8 +93,12 @@ class PostMonitorAgent:
     def scan_once(self, as_of: Optional[str] = None) -> Tuple[Alert, ...]:
         """扫描一轮，产出新预警。
 
-        **幂等**：同一案件的同一规则已产生过预警则跳过——
-        常驻循环会反复扫描，不去重会刷出重复预警，采纳率口径立刻失真。
+        **幂等的正确口径**（评审 R-P1）：去重键是
+        ``案件 + 规则 + 命中事实取值指纹``——防的是「同一事实被反复扫描
+        刷出重复预警」（那会让采纳率分母失真）；**不是**「同一规则只报一次」。
+        常驻循环的价值在持续监测：下一期逾期天数变了就是新的事实、新的预警。
+        原实现按 (case_id, rule_id) 去重，等于每条规则生命周期内只报一次，
+        贷后监测在第一次预警后就名存实亡，且漏报方向无声无息。
         """
         if not self._running:
             return ()
@@ -106,16 +111,29 @@ class PostMonitorAgent:
                 rule = self._rules.get(key)
                 if rule is None:
                     continue
-                if (case_id, rule_id) in self._alert_keys:
-                    continue                      # 幂等：已有预警
                 evaluation = self._engine.evaluate(rule, view.facts)
                 if evaluation.verdict is not Verdict.HIT:
                     continue
-                produced.append(self._make_alert(view, rule, evaluation, moment))
-        for alert in produced:
+                fact_key = self._fact_fingerprint(view, evaluation)
+                if (case_id, rule_id, fact_key) in self._alert_keys:
+                    continue                      # 幂等：同事实已有预警
+                produced.append(
+                    (self._make_alert(view, rule, evaluation, moment), fact_key)
+                )
+        out: List[Alert] = []
+        for alert, fact_key in produced:
             self._alerts.append(alert)
-            self._alert_keys[(alert.case_id, alert.rule_id)] = alert.alert_id
-        return tuple(produced)
+            self._alert_keys[(alert.case_id, alert.rule_id, fact_key)] = alert.alert_id
+            out.append(alert)
+        return tuple(out)
+
+    @staticmethod
+    def _fact_fingerprint(view: PostCaseView, evaluation: Evaluation) -> str:
+        """命中事实取值的规范化指纹（同事实同指纹，新事实新指纹）。"""
+        pairs = sorted(
+            (name, view.facts.get(name)) for name in evaluation.fact_refs
+        )
+        return json.dumps(pairs, sort_keys=True, ensure_ascii=False, default=str)
 
     # ---------------- 预警构造 ----------------
     def _make_alert(
@@ -147,8 +165,13 @@ class PostMonitorAgent:
             "scanned_at": as_of,
             "baseline_date": baseline,
         }
+        # 同一案件同一规则可能因事实变化多次预警，编号带序号保证唯一
+        seq = sum(
+            1 for a in self._alerts
+            if a.case_id == view.case_id and a.rule_id == rule.rule_id
+        ) + 1
         return Alert(
-            alert_id="AL-%s-%s" % (view.case_id, rule.rule_id),
+            alert_id="AL-%s-%s-%03d" % (view.case_id, rule.rule_id, seq),
             case_id=view.case_id,
             rule_id=rule.rule_id,
             rule_version=rule.version,
