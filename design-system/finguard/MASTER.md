@@ -69,10 +69,12 @@
 | 编号 / 金额 / 版本 | `IBM Plex Mono` | `R-CR-013`、`3.2.0`、`820,000` 这类**要能逐字符核对**的值 |
 
 ```css
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* 字体只走本地回落链，不引入任何 @import / CDN（见决策记录 7） */
+font-family: "IBM Plex Sans", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", -apple-system, "Segoe UI", sans-serif;
 ```
 
-> 有网时用 Google Fonts 字体；**断网时自动回落**到系统中文字体，版式不塌。
+> 机器上若装有 IBM Plex 系列则优先使用；未安装时**直接落到系统中文字体**，
+> 不向任何外部域名发请求——行内内网与答辩断网场景下首屏零外网依赖。
 
 **字号阶（12 14 16 18 24 32，模块化，不许随手取值）**
 
@@ -183,3 +185,6 @@
 | 4 | Fira Code / Fira Sans | **IBM Plex Sans + IBM Plex Mono** | Fira 偏技术/代码感；IBM Plex 的检索理由明写 "financial, trustworthy, banking, serious"，更贴金融合规。Mono 用于编号与金额，便于逐字符核对 |
 | 5 | Tailwind（stack 检索） | **手写 CSS token** | `--stack html-tailwind` 两次检索**均未命中**（"data table list badge severity status label" 与 "table" 皆 0 结果），按 skill 要求明确退回通用默认；且答辩现场可能断网，Tailwind CDN 会让界面**当场塌掉**——改用本地 CSS 变量，离线可用、零构建 |
 | 6 | 间距到 32px 止 | 保留 | Density 8/10 下不需要更粗的间距；粗细层级靠描边与底色区分 |
+| 7 | Google Fonts `@import`（初稿自带） | **删除，纯本地回落链** | 评审 R-F1：与本文「无 CDN / 无外网依赖」自相矛盾；`@import` 被阻断时样式解析挂起等超时，首屏可感卡顿，且向境外域名发请求不符合行内内网部署前提。字体视觉差异由回落链吸收 |
+| 8 | 琥珀 `#D97706` 同时用于文字与图形 | **文字改用 `--color-accent-text: #B45309`** | 评审 R-F10：#D97706 在白底 12px 粗体约 3.2:1，不达 WCAG AA 4.5:1；#B45309 约 5.0:1。图形（覆盖度条、边线）仍用 #D97706 |
+| 9 | 宽屏 `220px 1fr 320px` 三列 | **删第三列** | 评审 R-F7：无任何页面提供右栏内容，≥1440px 凭空空出 320px（生成稿残留） |

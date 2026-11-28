@@ -37,7 +37,10 @@
         <p><strong>提示</strong>　两路抽取不一致，该字段已被拦截，相关规则已置「未判定」。</p>
       </div>
 
-      <h3 style="margin-bottom:var(--space-md)">两个候选取值（等权重并列，不预设倾向）</h3>
+      <!-- 评审修复 R-F13：原措辞「不预设倾向」与默认选中取值 A 自相矛盾；
+           默认选中依 PRD 10.2.2 线框（● 取值 A）保留，措辞改为如实描述。
+           若产品侧决定去默认选中，应先改 PRD 线框再改实现。 -->
+      <h3 style="margin-bottom:var(--space-md)">两个候选取值（等权重并列；依 PRD 线框默认选中取值 A，可改选）</h3>
       <div class="table-wrap" style="margin-bottom:var(--space-lg)">
         <table>
           <thead><tr><th>候选</th><th>取值</th><th>来源</th><th>定位</th><th>置信度</th></tr></thead>
@@ -85,7 +88,7 @@
         <div style="margin-top:var(--space-lg)">
           <label for="reason">裁决理由 <span class="muted">（必填）</span></label>
           <textarea id="reason" placeholder="例：以 P13 区域为准（该区域为本期正式发票），P12 为草稿页扫描件。"></textarea>
-          <div class="err">裁决必须填写理由——没有理由的裁决无法复盘。</div>
+          <div class="err" role="alert">裁决必须填写理由——没有理由的裁决无法复盘。</div>
         </div>
 
         <div class="human-zone">
@@ -95,7 +98,9 @@
           </span>
           <p class="muted">提交后该字段回填为高置信，并触发相关规则重算；裁决人与理由一并入卷宗。</p>
           <div class="btn-row">
-            <button class="btn btn-primary" type="button" data-action="adjudicate">提交裁决</button>
+            <!-- 评审修复 R-F4：type=button 且无 click 监听 = 死按钮；
+                 改回 submit，走 form 的 submit 校验链（理由必填才放行） -->
+            <button class="btn btn-primary" type="submit" data-action="adjudicate">提交裁决</button>
           </div>
         </div>
       </form>

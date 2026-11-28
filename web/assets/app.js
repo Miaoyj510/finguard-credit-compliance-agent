@@ -62,6 +62,14 @@
       var sign = ev.target.closest("[data-action='sign']");
       if (sign) {
         var gate = sign.getAttribute("data-gate") || "GATE-A";
+        /* 评审修复 R-F3：原型也要守住职责分离的演示口径——
+           当前账号的岗位与闸门不匹配时，签核动作必须被拒并说明理由，
+           而不是让任何访客都能点出「已签核」。真实校验在后端（FR-GATE-02）。 */
+        var who = SCOPE[currentAccount()];
+        if (!who || who.gate !== gate) {
+          toast("职责分离：当前账号无 " + gate + " 签核资格（FR-GATE-02/03）");
+          return;
+        }
         var bar = sign.closest(".gate-bar");
         if (bar) {
           var badge = bar.querySelector("[data-gate-state]");
@@ -83,6 +91,17 @@
       var dismiss = ev.target.closest("[data-action='dismiss']");
       if (dismiss) {
         toast("已发起驳回补件：该条意见转为「未判定」，需补件后重跑");
+        return;
+      }
+      var adopt = ev.target.closest("[data-action='adopt']");
+      if (adopt) {
+        /* PRD 10.2.1 操作三枚之一；采纳/驳回是采纳率（P-01/V4）与误报率的分子来源 */
+        toast("该条意见已采纳（原型演示）：采纳动作将计入采纳率口径（PRD 12.2 P-01/V4）");
+        return;
+      }
+      var exp = ev.target.closest("[data-action='export']");
+      if (exp) {
+        toast("原型演示：取证包/PDF/结构化导出在切片 9 落盘后启用（含逐层内容哈希清单）");
         return;
       }
       var disp = ev.target.closest("[data-action='dispose']");
@@ -129,20 +148,33 @@
   }
 
   /* ---------- 时间轴：闸门节点不可跳过 ---------- */
+  function actNode(node) {
+    if (node.getAttribute("data-future") === "true") {
+      toast("该阶段尚未发生：本案未进入贷后循环（PRD 8.5 POST_LOOP 之后）");
+      return;
+    }
+    if (node.getAttribute("aria-disabled") === "true") {
+      toast("人工闸门：不可绕过，请查看该闸门的签核与升级记录");
+      return;
+    }
+    var all = document.querySelectorAll(".tl-node");
+    for (var j = 0; j < all.length; j++) { all[j].setAttribute("aria-current", "false"); }
+    node.setAttribute("aria-current", "true");
+    var panel = document.getElementById("snapshot-title");
+    if (panel) panel.textContent = node.getAttribute("data-label") || node.textContent.trim();
+  }
+
   function initTimeline() {
     var nodes = document.querySelectorAll(".tl-node");
     for (var i = 0; i < nodes.length; i++) {
       (function (node) {
-        node.addEventListener("click", function () {
-          if (node.getAttribute("aria-disabled") === "true") {
-            toast("人工闸门：不可绕过，请查看该闸门的签核与升级记录");
-            return;
+        node.addEventListener("click", function () { actNode(node); });
+        /* 评审修复 R-F8：时间轴是交互控件，必须键盘可达 */
+        node.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
+            ev.preventDefault();
+            actNode(node);
           }
-          var all = document.querySelectorAll(".tl-node");
-          for (var j = 0; j < all.length; j++) { all[j].setAttribute("aria-current", "false"); }
-          node.setAttribute("aria-current", "true");
-          var panel = document.getElementById("snapshot-title");
-          if (panel) panel.textContent = node.getAttribute("data-label") || node.textContent.trim();
         });
       })(nodes[i]);
     }
@@ -150,11 +182,45 @@
 
   /* ---------- 侧栏当前用户 ---------- */
   var SCOPE = {
-    "u-001": { role: "合规审查岗", level: "授权层级 2", scope: "GATE-A 审查意见签核" },
-    "u-002": { role: "风险研判岗", level: "授权层级 3", scope: "GATE-B 处置建议签核" },
-    "u-003": { role: "贷后管理岗", level: "授权层级 2", scope: "GATE-C 预警处置签核" },
-    "u-004": { role: "内审稽核岗", level: "授权层级 3", scope: "只读 · 导出取证包" }
+    "u-001": { role: "合规审查岗", level: "授权层级 2", scope: "GATE-A 审查意见签核", gate: "GATE-A" },
+    "u-002": { role: "风险研判岗", level: "授权层级 3", scope: "GATE-B 处置建议签核", gate: "GATE-B" },
+    "u-003": { role: "贷后管理岗", level: "授权层级 2", scope: "GATE-C 预警处置签核", gate: "GATE-C" },
+    "u-004": { role: "内审稽核岗", level: "授权层级 3", scope: "只读 · 导出取证包", gate: null }
   };
+
+  function currentAccount() {
+    var account = "";
+    try { account = window.localStorage.getItem("fg.account") || ""; } catch (e) { account = ""; }
+    if (!account) {
+      account = new URLSearchParams(window.location.search).get("role") || "";
+    }
+    return account;
+  }
+
+  /* 评审修复 R-F3：资格指示与签核按钮跟随当前登录岗位。
+     登录页承诺了「岗位权限可见」，业务页就必须兑现——
+     无资格账号看到恒绿的「✓ 有资格」是演示层面的职责分离谎言。 */
+  function applyGateQualification(account) {
+    var meta = SCOPE[account];
+    var signs = document.querySelectorAll("[data-action='sign']");
+    for (var i = 0; i < signs.length; i++) {
+      var gate = signs[i].getAttribute("data-gate") || "GATE-A";
+      var bar = signs[i].closest(".gate-bar");
+      var qual = bar ? bar.querySelector(".g-qual") : null;
+      var ok = !!meta && meta.gate === gate;
+      if (qual) {
+        if (ok) {
+          qual.textContent = "当前签核人资格：" + meta.role + "（" + account + "）";
+        } else {
+          qual.classList.add("no");
+          qual.textContent = account
+            ? "当前账号（" + account + "）无 " + gate + " 签核资格 · 职责分离"
+            : "未登录 · 签核须先登录并按岗位授权（FR-GATE-02）";
+        }
+      }
+      if (!ok) { signs[i].disabled = true; }
+    }
+  }
 
   function initUser() {
     var side = document.querySelector(".side");
@@ -162,12 +228,7 @@
     var box = document.createElement("div");
     box.className = "side-user";
     box.setAttribute("data-current-user", "");
-    var account = "";
-    try { account = window.localStorage.getItem("fg.role") || ""; } catch (e) { account = ""; }
-    if (!account) {
-      var url = new URLSearchParams(window.location.search).get("role");
-      account = url || "";
-    }
+    var account = currentAccount();
     var meta = SCOPE[account];
     var avatar = document.createElement("span");
     avatar.className = "avatar";
@@ -197,12 +258,19 @@
       scope.appendChild(lv);
       box.appendChild(scope);
     }
-    var out = document.createElement("a");
+    /* 评审修复 R-F12：「退出」必须真的清掉本地登录态，
+       否则回到登录页再进来仍是旧账号，权限演示失真。 */
+    var out = document.createElement("button");
+    out.type = "button";
     out.className = "u-out";
-    out.setAttribute("href", "login.html");
     out.textContent = account ? "切换账号 / 退出" : "去登录";
+    out.addEventListener("click", function () {
+      try { window.localStorage.removeItem("fg.account"); } catch (e) { /* 演示态忽略 */ }
+      window.location.href = "login.html";
+    });
     box.appendChild(out);
     side.appendChild(box);
+    applyGateQualification(account);
   }
 
   document.addEventListener("DOMContentLoaded", function () {
