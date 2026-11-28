@@ -121,7 +121,9 @@ SUITES: Dict[str, Dict] = {
         "slice": 8.1,
         "desc": "评测框架、金标集与 Gate 判定",
         # B 线金标先行：首批 30 件独立标注 + 与确定性管线的交叉校验（评审方产出）
-        "modules": ["tests.test_gold_cases", "tests.test_gold_crosscheck"],
+        # 切片 8.1：评测框架（加载 / 指标 / Gate / 跑批报告）
+        "modules": ["tests.test_gold_cases", "tests.test_gold_crosscheck",
+                    "tests.test_eval_framework"],
     },
     "persist": {
         "slice": 9,
