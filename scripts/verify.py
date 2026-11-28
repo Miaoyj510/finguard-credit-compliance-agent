@@ -122,6 +122,11 @@ SUITES: Dict[str, Dict] = {
         "desc": "评测框架、金标集与 Gate 判定",
         "modules": [],
     },
+    "persist": {
+        "slice": 9,
+        "desc": "持久化落库与只读 API（契约先行 · 零依赖）",
+        "modules": ["tests.test_persistence_api"],
+    },
     "deploy": {
         "slice": 9,
         "desc": "部署形态与生产就绪（灰度 / 回滚 / 压测）",
@@ -142,7 +147,8 @@ SLICE_TITLES = {
     7.5: "界面设计系统与业务界面原型",
     8: "金标标注（合成案件 / 任务包 / 双盲比对）",
     8.1: "评测框架与 Gate 判定",
-    9: "部署与生产就绪",
+    9: "持久化落库与只读 API",
+    9.1: "部署与生产就绪",
 }
 
 GREEN = "\033[92m"
