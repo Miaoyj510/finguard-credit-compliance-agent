@@ -123,7 +123,6 @@ def chunk_policy_clauses(
         body_lines = [l.strip() for l in lines[line_no + 1:end] if l.strip()]
         # 条款首段（与「第X条」同一行）+ 后续行，合起来才是这条的正文
         bodies.append(" ".join(([first_paragraph] if first_paragraph else []) + body_lines))
-        titles.append(first_paragraph)
         chapters.append(chapter)
 
     for pos, (line_no, header, _first) in enumerate(marks):

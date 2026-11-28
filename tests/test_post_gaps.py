@@ -143,3 +143,92 @@ class TestCrossCaseGuard(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestScanSkipDoesNotBreakRound(unittest.TestCase):
+    """C1：单案构造失败**按案件跳过并留痕**，不中断整轮扫描。"""
+
+    def _view(self, case_id, baseline, days_past_due):
+        from finguard.domain.post import PostCaseView
+        return PostCaseView(
+            case_id=case_id, product_type="小额经营贷", org_level="二级分行",
+            baseline_date=baseline,
+            rule_bindings=(("R-PM-001", "1.0.0"),),
+            facts={"days_past_due": days_past_due},
+            field_meta={"days_past_due": {"channel": "api", "confidence": "高"}},
+        )
+
+    def test_单案跳过不中断整轮(self):
+        from finguard.agents.post_monitor import PostMonitorAgent
+        from finguard.rules.post_seeds import post_rule_map
+        events = []
+        monitor = PostMonitorAgent(post_rule_map(), clock=lambda: "2026-03-01T09:00:00",
+                                   event_sink=events.append)
+        monitor.register(self._view("FG-BAD", "2026-06-01", 45))     # as_of 早于基准日
+        monitor.register(self._view("FG-OK", "2026-01-01", 45))
+        monitor.start()
+        alerts = monitor.scan_once("2026-03-01")
+        self.assertEqual([a.case_id for a in alerts], ["FG-OK"])
+
+    def test_跳过有事件留痕(self):
+        from finguard.agents.post_monitor import PostMonitorAgent
+        from finguard.rules.post_seeds import post_rule_map
+        events = []
+        monitor = PostMonitorAgent(post_rule_map(), clock=lambda: "2026-03-01T09:00:00",
+                                   event_sink=events.append)
+        monitor.register(self._view("FG-BAD", "2026-06-01", 45))
+        monitor.start()
+        monitor.scan_once("2026-03-01")
+        kinds = [e["kind"] for e in monitor.events]
+        self.assertIn("scan_skipped", kinds)
+        self.assertTrue(events, "跳过必须经事件出口留痕，不能只留在内存")
+
+    def test_跳过事件带案件与原因(self):
+        from finguard.agents.post_monitor import PostMonitorAgent
+        from finguard.rules.post_seeds import post_rule_map
+        monitor = PostMonitorAgent(post_rule_map(), clock=lambda: "2026-03-01T09:00:00")
+        monitor.register(self._view("FG-BAD", "2026-06-01", 45))
+        monitor.start()
+        monitor.scan_once("2026-03-01")
+        detail = monitor.events[0]["detail"]
+        self.assertEqual(detail["case_id"], "FG-BAD")
+        self.assertTrue(detail["reason"])
+
+
+class TestIdempotencyCaliber(unittest.TestCase):
+    """C2：事实指纹不变则不重报（含已处置后）；事实变了才重报。"""
+
+    def _monitor(self):
+        from finguard.agents.post_monitor import PostMonitorAgent
+        from finguard.rules.post_seeds import post_rule_map
+        return PostMonitorAgent(post_rule_map(), clock=lambda: "2026-03-01T09:00:00")
+
+    def _view(self, days_past_due):
+        from finguard.domain.post import PostCaseView
+        return PostCaseView(
+            case_id="FG-1", product_type="小额经营贷", org_level="二级分行",
+            baseline_date="2026-01-01",
+            rule_bindings=(("R-PM-001", "1.0.0"),),
+            facts={"days_past_due": days_past_due},
+            field_meta={"days_past_due": {"channel": "api", "confidence": "高"}},
+        )
+
+    def test_处置后事实未变不重报(self):
+        monitor = self._monitor()
+        monitor.register(self._view(45))
+        monitor.start()
+        first = monitor.scan_once("2026-03-01")
+        self.assertEqual(len(first), 1)
+        # 模拟已处置：事实未变，下一期不再报
+        again = monitor.scan_once("2026-04-01")
+        self.assertEqual(again, ())
+
+    def test_事实变了重报(self):
+        monitor = self._monitor()
+        monitor.register(self._view(45))
+        monitor.start()
+        monitor.scan_once("2026-03-01")
+        monitor.register(self._view(75))          # 逾期天数变化 = 新事实
+        later = monitor.scan_once("2026-04-01")
+        self.assertEqual(len(later), 1)
+        self.assertNotEqual(later[0].alert_id, monitor.alerts[0].alert_id)
