@@ -346,3 +346,120 @@ class TestPrdAlignment(unittest.TestCase):
         for token in ("L1", "L2", "L3", "L4", "L5", "L6",
                       "GATE-A", "GATE-B", "六层齐备性检查"):
             self.assertIn(token, html)
+
+
+class TestReviewGaps75(unittest.TestCase):
+    """切片 7.5 评审补充断言（R-F1—R-F11，先红后绿）。"""
+
+    def setUp(self):
+        self.css = read(os.path.join(WEB, "assets", "app.css"))
+        self.js = read(os.path.join(WEB, "assets", "app.js"))
+
+    # --- R-F1 离线硬约束 ---
+    def test_样式与页面不引用任何外网资源(self):
+        self.assertNotIn("@import", self.css)
+        self.assertNotIn("http://", self.css)
+        self.assertNotIn("https://", self.css)
+        for name in PAGES:
+            self.assertNotIn("https://", page(name), name)
+
+    # --- R-F2 采纳动作 ---
+    def test_工作台含PRD三枚操作按钮(self):
+        html = page("workbench.html")
+        for token in ("采纳", "改写并留痕", "驳回并要求补件"):
+            self.assertIn(token, html, "缺 PRD 10.2.1 操作 %s" % token)
+        self.assertIn("adopt", self.js, "app.js 未处理采纳动作")
+
+    # --- R-F3 签核按登录岗位校验 ---
+    def test_签核按钮按当前岗位校验(self):
+        self.assertIn("gate:", self.js, "岗位映射缺闸门归属")
+        self.assertIn("职责分离", self.js, "无资格签核必须给出职责分离理由")
+        self.assertIn("applyGateQualification", self.js, "资格指示须随登录岗位刷新")
+        for token in ("sign", "data-gate"):
+            self.assertIn(token, self.js)
+
+    # --- R-F4 裁决提交可用 ---
+    def test_裁决提交按钮会触发表单提交(self):
+        html = page("adjudication.html")
+        self.assertIn('data-action="adjudicate"', html)
+        block = html[html.index('data-action="adjudicate"') - 80:html.index('data-action="adjudicate"')]
+        self.assertIn('type="submit"', block)
+
+    # --- R-F5 导出有反馈 ---
+    def test_导出按钮有处理逻辑(self):
+        self.assertIn("export", self.js, "app.js 未处理导出动作")
+
+    # --- R-F6 回放页案件与卷宗状态自洽 ---
+    def test_回放页使用已归档案件(self):
+        html = page("replay.html")
+        self.assertIn("FG-20260918-000019", html)
+        self.assertNotIn("待回写", html)
+        self.assertIn("S9", html, "缺 PRD 10.2.4 的贷后段节点")
+
+    # --- R-F7 1440 布局无空列 ---
+    def test_宽屏不预留空右栏(self):
+        self.assertNotIn("320px", self.css)
+
+    # --- R-F8 时间轴键盘可达 ---
+    def test_时间轴节点均可键盘操作(self):
+        html = page("replay.html")
+        nodes = re.findall(r'<div class="tl-node[^"]*"[^>]*>', html)
+        self.assertTrue(nodes)
+        for tag in nodes:
+            self.assertIn('tabindex="0"', tag)
+        self.assertIn("keydown", self.js)
+
+    # --- R-F9 错误提示可被读屏 ---
+    def test_表单错误有alert角色(self):
+        for name, frag in (("login.html", 'id="login-err"'),
+                           ("adjudication.html", 'class="err"')):
+            html = page(name)
+            i = html.index(frag)
+            self.assertIn('role="alert"', html[max(0, i - 60):i + 40], name)
+
+    # --- R-F10 琥珀文字对比度 ---
+    def test_警示文字用加深的琥珀色(self):
+        self.assertIn("--color-accent-text", self.css)
+        block = self.css[self.css.index(".badge-warning"):]
+        block = block[:block.index("}")]
+        self.assertIn("var(--color-accent-text)", block)
+
+    # --- R-F11 意见不引用未判定规则 ---
+    def test_意见卡不引用须人工判定的规则(self):
+        html = page("workbench.html")
+        self.assertNotIn("R-CR-021 v", html, "未判定规则不得出现版本号意见")
+
+    # --- R-F12 退出真的退出 ---
+    def test_退出清理本地登录态(self):
+        self.assertIn("removeItem", self.js)
+
+
+class TestPrdLoginAlignment(unittest.TestCase):
+    """评审 A1：PRD 10.2.5 登录线框与实现必须共存且口径一致。
+
+    这条断言防的是「文档层缺口静默重开」——实现先跑、PRD 落后，
+    正是切片 7.5 评审时发现的缺口形态。
+    """
+
+    def setUp(self):
+        self.prd = read(os.path.join(
+            ROOT, "PRD-信贷内控合规审查与贷后风险Agent平台.md"))
+        self.html = page("login.html")
+
+    def test_PRD含登录线框与认证入口原则(self):
+        self.assertIn("### 10.2.5 登录页（认证入口与岗位权限可见）", self.prd)
+        self.assertIn("**认证入口与岗位权限可见**", self.prd)
+
+    def test_线框岗位与页面一致(self):
+        section = self.prd[self.prd.index("### 10.2.5"):]
+        for token in ("内控合规审查岗", "风险研判岗", "贷后管理岗", "内审稽核岗",
+                      "GATE-A", "GATE-B", "GATE-C", "只读"):
+            self.assertIn(token, section, "PRD 线框缺 %s" % token)
+            self.assertIn(token, self.html, "登录页缺 %s" % token)
+
+    def test_演示声明与代签提示两端都在(self):
+        for token in ("合成数据", "无法代签", "设备指纹"):
+            self.assertIn(token, self.html)
+        section = self.prd[self.prd.index("### 10.2.5"):]
+        for token in ("合成数据", "无法代签", "设备指纹"):
+            self.assertIn(token, section)

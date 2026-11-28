@@ -32,7 +32,7 @@
   background: var(--color-warning-soft); border: 1px solid #FCD34D; border-left: 4px solid var(--color-accent);
   border-radius: var(--radius); padding: var(--space-lg); margin-bottom: var(--space-lg);
 }
-.env-note .t { font-weight: 600; color: var(--color-accent); }
+.env-note .t { font-weight: 600; color: var(--color-accent-text); }
 .env-note p { margin: var(--space-xs) 0 0; font-size: var(--fs-xs); color: var(--color-muted-foreground); }
 .roles { border-top: 1px solid var(--color-border); margin-top: var(--space-xl); padding-top: var(--space-lg); }
 .roles h2 { font-size: var(--fs-sm); color: var(--color-muted-foreground); font-weight: 600; margin-bottom: var(--space-md); }
@@ -81,7 +81,7 @@
           <input type="password" id="password" name="password" autocomplete="current-password" required>
           <button class="pw-toggle" type="button" id="pw-toggle" aria-label="显示密码">显示</button>
         </div>
-        <div class="err" id="login-err">账号或密码不正确，请重试。</div>
+        <div class="err" id="login-err" role="alert">账号或密码不正确，请重试。</div>
       </div>
 
       <label class="check" for="remember">
@@ -95,8 +95,10 @@
     <div class="roles">
       <h2>按岗位快速进入（演示）</h2>
       <div class="role-list">
-        <button class="role-btn" type="button" data-role="合规审查岗" data-account="u-001" data-level="授权层级 2">
-          <span>合规审查岗 · 内控合规审查</span><span class="lv">可签核 GATE-A</span>
+        <!-- 评审修正：岗位名统一为 PRD 8.7 / 后端 GATE_SPECS 口径
+             「内控合规审查岗」，切片 9 接真实鉴权时签核校验按此串比对 -->
+        <button class="role-btn" type="button" data-role="内控合规审查岗" data-account="u-001" data-level="授权层级 2">
+          <span>内控合规审查岗</span><span class="lv">可签核 GATE-A</span>
         </button>
         <button class="role-btn" type="button" data-role="风险研判岗" data-account="u-002" data-level="授权层级 3">
           <span>风险研判岗</span><span class="lv">可签核 GATE-B</span>
@@ -150,7 +152,8 @@
       return;
     }
     err.classList.remove("show");
-    try { window.localStorage.setItem("fg.role", account.value.trim()); } catch (e) { /* 演示态忽略 */ }
+    /* 评审修复：键名 fg.role 存的其实是账号，改名为 fg.account（app.js 同步） */
+    try { window.localStorage.setItem("fg.account", account.value.trim()); } catch (e) { /* 演示态忽略 */ }
     window.location.href = "index.html?role=" + encodeURIComponent(account.value.trim());
   });
 })();

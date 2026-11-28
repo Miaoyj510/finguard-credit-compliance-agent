@@ -28,30 +28,41 @@
     </div>
     <section class="card" aria-labelledby="tl-head">
       <div class="card-head">
-        <h2 id="tl-head" class="card-title">案件 <span class="mono">FG-20261114-000123</span> · 回放轨迹</h2>
+        <!-- 评审修复 R-F6：回放页原来展示的是停在 S3 的案件 FG-…000123，
+           却给出走到 S6 的轨迹与「L1—L5 齐全」的取证判定——案件还在闸门里
+           就没有签核层。改为与案件列表「回放」入口一致的已归档案件。 -->
+      <h2 id="tl-head" class="card-title">案件 <span class="mono">FG-20260918-000019</span> · 回放轨迹</h2>
         <span class="muted">点击任意节点还原当时的快照</span>
       </div>
 
       <div class="timeline" role="list" aria-label="案件状态轨迹">
-        <div class="tl-node done" role="listitem" data-label="S0 受理"><span class="tl-code">S0</span><span class="tl-name">受理</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S0 受理"><span class="tl-code">S0</span><span class="tl-name">受理</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node done" role="listitem" data-label="S1 事实抽取"><span class="tl-code">S1</span><span class="tl-name">事实抽取</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S1 事实抽取"><span class="tl-code">S1</span><span class="tl-name">事实抽取</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node done" role="listitem" data-label="S2 规则绑定与判定"><span class="tl-code">S2</span><span class="tl-name">规则绑定与判定</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S2 规则绑定与判定"><span class="tl-code">S2</span><span class="tl-name">规则绑定与判定</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node done" role="listitem" data-label="S3 审查意见成稿"><span class="tl-code">S3</span><span class="tl-name">意见成稿</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S3 审查意见成稿"><span class="tl-code">S3</span><span class="tl-name">意见成稿</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node gate" role="listitem" aria-disabled="true" tabindex="0" data-label="GATE-A 审查意见签核（人工闸门，不可绕过）"><span class="tl-code"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> GATE-A</span><span class="tl-name">审查意见签核</span></div>
+        <div class="tl-node gate done" role="listitem" aria-disabled="true" tabindex="0" data-label="GATE-A 审查意见签核（人工闸门，不可绕过；已签核 u-001）"><span class="tl-code"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> GATE-A</span><span class="tl-name">审查意见签核</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node" role="listitem" data-label="S4 风险研判"><span class="tl-code">S4</span><span class="tl-name">风险研判</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S4 风险研判"><span class="tl-code">S4</span><span class="tl-name">风险研判</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node gate" role="listitem" aria-disabled="true" tabindex="0" data-label="GATE-B 处置建议签核（人工闸门，不可绕过）"><span class="tl-code"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> GATE-B</span><span class="tl-name">处置建议签核</span></div>
+        <div class="tl-node gate done" role="listitem" aria-disabled="true" tabindex="0" data-label="GATE-B 处置建议签核（人工闸门，不可绕过；已签核 u-002）"><span class="tl-code"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> GATE-B</span><span class="tl-name">处置建议签核</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node" role="listitem" data-label="S5 卷宗组装"><span class="tl-code">S5</span><span class="tl-name">卷宗组装</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S5 卷宗组装"><span class="tl-code">S5</span><span class="tl-name">卷宗组装</span></div>
         <span class="tl-arrow" aria-hidden="true">→</span>
-        <div class="tl-node" role="listitem" data-label="S6 已归档"><span class="tl-code">S6</span><span class="tl-name">已归档</span></div>
+        <div class="tl-node done" role="listitem" tabindex="0" data-label="S6 已归档"><span class="tl-code">S6</span><span class="tl-name">已归档</span></div>
+        <span class="tl-arrow" aria-hidden="true">→</span>
+        <div class="tl-node future" role="listitem" tabindex="0" data-future="true" data-label="S7 预警生成（未发生）"><span class="tl-code">S7</span><span class="tl-name">预警生成</span></div>
+        <span class="tl-arrow" aria-hidden="true">→</span>
+        <div class="tl-node future" role="listitem" tabindex="0" data-future="true" data-label="S8 核查初核（未发生）"><span class="tl-code">S8</span><span class="tl-name">核查初核</span></div>
+        <span class="tl-arrow" aria-hidden="true">→</span>
+        <div class="tl-node gate future" role="listitem" aria-disabled="true" tabindex="0" data-future="true" data-label="GATE-C 预警处置签核（人工闸门，不可绕过；未发生）"><span class="tl-code"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> GATE-C</span><span class="tl-name">预警处置签核</span></div>
+        <span class="tl-arrow" aria-hidden="true">→</span>
+        <div class="tl-node future" role="listitem" tabindex="0" data-future="true" data-label="S9 贷后处置归档（未发生）"><span class="tl-code">S9</span><span class="tl-name">贷后处置归档</span></div>
       </div>
-      <p class="muted">锁形图标 = 人工闸门，<strong>不可绕过</strong>；点击仅展示签核与升级记录，不提供跳过。</p>
+      <p class="muted">锁形图标 = 人工闸门，<strong>不可绕过</strong>；点击仅展示签核与升级记录，不提供跳过。虚线灰显节点为贷后段（PRD 10.2.4 方括号段），本案尚未进入。</p>
     </section>
 
     <section class="card" aria-labelledby="snap-head">
@@ -81,10 +92,11 @@
             <tr><td class="mono">L3</td><td>依据文档快照</td><td>chunk_id、原文 quote、来源文号与发布日期</td><td><span class="badge badge-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> 齐全</span></td></tr>
             <tr><td class="mono">L4</td><td>审查意见层</td><td>结构化意见 + 覆盖度 + 严重度 + 未判定原因码</td><td><span class="badge badge-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> 齐全</span></td></tr>
             <tr><td class="mono">L5</td><td>人审签核层</td><td>签核人、时间戳、结论、改写前后双版本、升级记录</td><td><span class="badge badge-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> 齐全</span></td></tr>
-            <tr><td class="mono">L6</td><td>处置与贷后闭环层</td><td>风险处置决定、贷后预警、核查记录</td><td><span class="badge badge-warning">待回写</span></td></tr>
+            <tr><td class="mono">L6</td><td>处置与贷后闭环层</td><td>风险处置决定、贷后预警、核查记录</td><td><span class="badge badge-success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg> 齐全</span></td></tr>
           </tbody>
         </table>
       </div>
+      <p class="muted" style="margin-top:var(--space-md)">L6 含风险处置决定（调整关注，经 GATE-B 签核）；贷后预警与核查记录为空——本案未进入贷后循环，按 PRD 8.9「半层显式空字段」口径判齐备。任一层真缺失时本表标「不完整」且导出取证包不可用。</p>
       <div class="btn-row" style="margin-top:var(--space-lg)">
         <button class="btn btn-primary" type="button" data-action="export">导出取证包</button>
         <button class="btn" type="button" data-action="export">导出 PDF</button>

@@ -115,9 +115,10 @@
           <div class="human-zone">
             <span class="who">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-              人工操作 · 合规审查岗
+              人工操作 · 内控合规审查岗
             </span>
             <div class="btn-row">
+              <button class="btn btn-sm" type="button" data-action="adopt">采纳</button>
               <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
               <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
               <span class="muted" style="align-self:center">改写将同时保留原始意见与修改后意见（FR-GATE-06）</span>
@@ -131,7 +132,9 @@
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
           <span class="badge badge-neutral">提示</span>
           <span class="mono">OP-002</span>
-          <span class="muted">规则 <span class="mono">R-CR-021 v1.4.1</span></span>
+          <!-- 评审修复 R-F11：原示例让「须人工判定」的 R-CR-021 带版本号出意见，
+               与本案头部的未判定徽标自相矛盾（未绑定唯一版本的规则不进判定链、不出意见）。 -->
+          <span class="muted">规则 <span class="mono">R-CR-034 v2.0.1</span></span>
         </summary>
         <div class="opinion-body">
           <div class="ai-block">
@@ -141,6 +144,7 @@
           <div class="human-zone">
             <span class="who">人工操作 · 合规审查岗</span>
             <div class="btn-row">
+              <button class="btn btn-sm" type="button" data-action="adopt">采纳</button>
               <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
               <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
             </div>
@@ -163,6 +167,7 @@
           <div class="human-zone">
             <span class="who">人工操作 · 合规审查岗</span>
             <div class="btn-row">
+              <button class="btn btn-sm" type="button" data-action="adopt">采纳</button>
               <button class="btn btn-sm btn-primary" type="button" data-action="amend">改写并留痕</button>
               <button class="btn btn-sm" type="button" data-action="dismiss">驳回并要求补件</button>
             </div>

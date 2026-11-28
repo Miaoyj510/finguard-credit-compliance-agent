@@ -3,7 +3,10 @@
  * 原则：无外网依赖（字体可回落）、无构建、浅色可打印
  */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* 评审修复 R-F1：删除 Google Fonts 外部字体引入语句。
+ * 「无 CDN / 可离线」是本产品的硬约束（答辩与行内内网都可能断网或被墙），
+ * 外部字体引入会在每次首屏向境外域名发起请求，被阻断时样式解析整体挂起等待超时；
+ * 字体直接走下面的本地回落链（Noto Sans SC / 微软雅黑 / 苹方）。 */
 
 :root {
   /* 配色（浅色 · Analytics Dashboard 蓝板） */
@@ -11,7 +14,10 @@
   --color-on-primary: #FFFFFF;
   --color-secondary: #3B82F6;
   --color-on-secondary: #0F172A;
-  --color-accent: #D97706;
+  --color-accent: #D97706;          /* 仅用于图形（覆盖度条、边线） */
+  --color-accent-text: #B45309;     /* 评审修复 R-F10：文字用加深琥珀，
+                                       #D97706 在白底 12px 粗体下对比度约 3.2:1，
+                                       不达 WCAG AA 4.5:1；#B45309 约 5.0:1 */
   --color-on-accent: #FFFFFF;
   --color-background: #F8FAFC;
   --color-foreground: #0F172A;
@@ -117,7 +123,10 @@ a { color: var(--color-primary); }
 }
 .side nav a svg { flex: none; }
 
-.main { padding: var(--space-2xl) var(--space-3xl); max-width: 1400px; }
+/* min-width:0 —— 评审修复 R-F7 连带：grid 子项默认 min-width:auto，
+   宽表格/时间轴会把轨道撑出视口造成页面级横向滚动；
+   滚动应发生在 .table-wrap / .timeline 内部。 */
+.main { padding: var(--space-2xl) var(--space-3xl); max-width: 1400px; min-width: 0; }
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-xl); margin-bottom: var(--space-xl); }
 .page-head .sub { color: var(--color-muted-foreground); font-size: var(--fs-sm); margin-top: var(--space-xs); }
 
@@ -151,7 +160,11 @@ a { color: var(--color-primary); }
 .side-user .u-role { color: var(--color-muted-foreground); }
 .side-user .u-scope { margin-top: var(--space-md); color: var(--color-muted-foreground); }
 .side-user .u-scope b { color: var(--color-foreground); font-family: var(--font-mono); }
-.side-user .u-out { display: inline-block; margin-top: var(--space-md); color: var(--color-primary); cursor: pointer; }
+.side-user .u-out {
+  display: inline-block; margin-top: var(--space-md); color: var(--color-primary); cursor: pointer;
+  background: none; border: 0; padding: 0; font: inherit; text-align: left;
+}
+.side-user .u-out:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
 
 /* ---------------- 徽标 ---------------- */
 .badge {
@@ -163,7 +176,7 @@ a { color: var(--color-primary); }
 }
 .badge-neutral { background: var(--color-muted); color: var(--color-muted-foreground); border-color: var(--color-border); }
 .badge-primary { background: var(--color-primary); color: var(--color-on-primary); }
-.badge-warning { background: var(--color-warning-soft); color: var(--color-accent); border-color: #FCD34D; }
+.badge-warning { background: var(--color-warning-soft); color: var(--color-accent-text); border-color: #FCD34D; }
 .badge-success { background: var(--color-success-soft); color: var(--color-success); border-color: #BBF7D0; }
 .badge-danger  { background: var(--color-danger-soft); color: var(--color-destructive); border-color: #FECACA; }
 .badge-gate    { background: var(--color-foreground); color: #fff; }
@@ -263,6 +276,9 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .gate-bar .g-id { display: flex; align-items: center; gap: var(--space-md); font-weight: 600; }
 .gate-bar .g-timer { color: #FCD34D; font-family: var(--font-mono); font-weight: 600; }
 .gate-bar .g-qual { display: inline-flex; align-items: center; gap: var(--space-sm); font-size: var(--fs-sm); }
+/* 评审修复 R-F3：无资格时的资格指示必须看得出是"无资格"，不能恒绿勾 */
+.gate-bar .g-qual.no { color: #FCA5A5; }
+.gate-bar .g-qual.no svg { display: none; }
 .gate-bar .btn-primary { background: var(--color-secondary); border-color: var(--color-secondary); color: var(--color-on-secondary); }
 .gate-bar .btn-primary:hover { background: #2563EB; }
 
@@ -272,7 +288,7 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
   background: var(--color-warning-soft);
   border-radius: var(--radius); padding: var(--space-lg); margin-bottom: var(--space-lg);
 }
-.todo h3 { color: var(--color-accent); display: flex; align-items: center; gap: var(--space-md); }
+.todo h3 { color: var(--color-accent-text); display: flex; align-items: center; gap: var(--space-md); }
 
 /* ---------------- 预警行 ---------------- */
 .alert-row { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-lg); margin-bottom: var(--space-lg); background: var(--color-card); }
@@ -300,6 +316,13 @@ td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-
 .tl-node.gate .tl-name { color: #CBD5E1; }
 .tl-node.gate[aria-disabled="true"] { cursor: not-allowed; }
 .tl-node.done { border-color: var(--color-primary); }
+.tl-node.done .tl-code { color: var(--color-primary); }
+.tl-node.gate.done { background: var(--color-primary); border-color: var(--color-primary); }
+.tl-node.gate.done .tl-name { color: #DBEAFE; }
+/* 评审修复 R-F6/R-F8：贷后段（本案未进入）灰显；选中节点有可见焦点态 */
+.tl-node.future { opacity: .55; border-style: dashed; }
+.tl-node[aria-current="true"] { box-shadow: inset 0 0 0 2px var(--color-ring); }
+.tl-node:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
 .tl-arrow { flex: none; align-self: center; color: var(--color-muted-foreground); }
 
 /* ---------------- 表单 ---------------- */
@@ -354,8 +377,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px
   .timeline { padding: var(--space-md) 0; }
 }
 
+/* 评审修复 R-F7：删除宽屏第三列。生成稿残留了一条右侧栏轨道，
+ * 但没有任何页面提供第三列内容，宽屏下右侧凭空空出一条轨道。 */
 @media (min-width: 1440px) {
-  .app-shell { grid-template-columns: 220px 1fr 320px; }
   .main { max-width: 1500px; }
 }
 
