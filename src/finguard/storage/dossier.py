@@ -25,6 +25,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 __all__ = [
+    "DossierError",
     "DossierLayer",
     "Completeness",
     "LayerSnapshot",
@@ -38,6 +39,10 @@ __all__ = [
     "signatures_layer_payload",
     "disposition_layer_payload",
 ]
+
+
+class DossierError(Exception):
+    """卷宗组装失败（缺改写留痕等硬性缺失）。"""
 
 
 class DossierLayer(str, Enum):
@@ -276,11 +281,40 @@ def opinions_layer_payload(
     opinions: Iterable[Any],
     coverage: Any = None,
     spec_version: str = "",
+    amendments: Iterable[Any] = (),
+    revision: int = 0,
 ) -> Dict[str, Any]:
-    """L4 审查意见层：结构化意见 + 覆盖度 + 严重度 + 未判定原因码 + AgentSpec 版本。"""
+    """L4 审查意见层：结构化意见 + 覆盖度 + 严重度 + 未判定原因码 + AgentSpec 版本。
+
+    **C3 决策**：标记为 ``HUMAN_AMENDED`` 的意见，**必须**有对应的 amendment
+    记录（含原始意见、修改后意见与修改理由），否则**组装直接失败**——
+    FR-GATE-06 的强制力落在卷宗层，而不是靠签核岗"自觉登记"。
+
+    ``revision`` 是**修订轮次**（评审咨询 C2）：同一案件退回后重新成稿会产出
+    新的意见集合，卷宗键因此带修订维度 ``opinion_id@rN``，两轮不会互相覆盖。
+    """
+    amended_keys = set()
+    for a in amendments:
+        if hasattr(a, "rule_id"):
+            amended_keys.add((a.rule_id, a.rule_version))
+        elif isinstance(a, Mapping):
+            amended_keys.add((a.get("rule_id"), a.get("rule_version")))
+
     items = []
     for o in opinions:
-        items.append(o.to_dict() if hasattr(o, "to_dict") else dict(o))
+        d = o.to_dict() if hasattr(o, "to_dict") else dict(o)
+        if d.get("origin") == "human_amended":
+            key = (d.get("rule_id"), d.get("rule_version"))
+            if key not in amended_keys:
+                raise DossierError(
+                    "意见 %s 标记为人工改写但缺少对应 amendment 记录"
+                    "（FR-GATE-06 双版本与理由缺失，卷宗不得组装）"
+                    % d.get("opinion_id")
+                )
+        d["revision"] = revision
+        d["opinion_key"] = "%s@r%d" % (d.get("opinion_id"), revision)
+        items.append(d)
+
     cov: Dict[str, Any] = {}
     if coverage is not None:
         cov = coverage.to_dict() if hasattr(coverage, "to_dict") else dict(coverage)
@@ -288,6 +322,8 @@ def opinions_layer_payload(
         "opinions": items,
         "coverage_summary": cov,
         "producer_spec_version": spec_version,
+        "revision": revision,
+        "amendment_count": len(list(amendments)),
     }
 
 

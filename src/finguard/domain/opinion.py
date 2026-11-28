@@ -55,7 +55,11 @@ class OpinionOrigin(str, Enum):
 
     RULE_ENGINE = "rule_engine"   # 由判定结果直接派生
     MODEL = "model"               # 由模型生成理由（需过闸门）
-    HUMAN = "human"               # 人工撰写
+    HUMAN = "human"               # 人工撰写（PRD 8.4 的 HUMAN_CREATED）
+    # 人工改写 AI 意见（PRD 8.4 的 HUMAN_AMENDED）。标记了这个 origin 的意见，
+    # 切片 6 组装卷宗时**必须**能找到对应的 amendment 记录（含双版本与理由），
+    # 否则组装直接失败——FR-GATE-06 的强制力落在卷宗层，不靠自觉登记。
+    HUMAN_AMENDED = "human_amended"
 
 
 @dataclass(frozen=True)

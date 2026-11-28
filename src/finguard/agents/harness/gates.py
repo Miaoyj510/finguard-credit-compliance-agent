@@ -218,6 +218,14 @@ class GateRecord:
                 "签核人岗位 %r 无权操作 %s（需 %s 或升级链上的上级岗位）"
                 % (signer.role, self.gate_id, self.required_role)
             )
+        # C1 决策（PRD 8.7 字面口径）：升级链写在**超时路径**里，因此上级岗位
+        # 必须先等到超时升级发生，才可接手签核。未超时就被上级接签，
+        # 等同于 L1 静默放弃签核权——那是"绕过"，不是"升级"。
+        if signer.role != self.required_role and not self.escalations:
+            raise GateSignError(
+                "闸门 %s 尚未超时升级，上级岗位 %r 不可提前接签"
+                "（PRD 8.7 升级链属超时路径）" % (self.gate_id, signer.role)
+            )
         if signer.authority_level < self.required_authority_level:
             raise GateSignError(
                 "签核人授权层级 %d 低于 %s 要求的 %d"

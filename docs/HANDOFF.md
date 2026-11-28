@@ -587,7 +587,7 @@ git commit -am "review: 切片 4 评审意见"
 | **分支** | `feat/impl` |
 | **切片目标** | 实现 PRD 8.2 / 8.5 / 8.6 / 8.7：**17 状态状态机 + Handoff 契约 + 三处强制人审闸门**，把「不可绕过 / 不可代签 / 超时只升级」做成**结构上无法绕过**，而不是靠约定 |
 | **本次不含** | 不可篡改事件日志与六层卷宗回放（切片 6）、贷后常驻循环与 GATE-C 业务流（切片 7）、评测框架与 Gate 判定（切片 8）、真实模型接入（切片 9） |
-| **验证命令** | `python scripts/verify.py --slice 5`（预期 **70 / 70 通过**）；全量 `python scripts/verify.py` 预期 **285 / 285 通过**；`python scripts/verify.py --checkpoint milestone` 额外打印**安全探针实测表**（现场把 6 条绕过路径打一遍） |
+| **验证命令** | `python scripts/verify.py --slice 5`（预期 **96 / 96 通过**：原 70 + 评审新增 20 + C1 决策新增 6）；全量 `python scripts/verify.py` 预期 **370 / 370 通过**；`python scripts/verify.py --checkpoint milestone` 额外打印**安全探针实测表**（现场把 6 条绕过路径打一遍） |
 
 ### 改了什么
 
@@ -734,6 +734,29 @@ git commit -am "review: 切片 5 评审意见"
 > 给实现方：合并后请把切片 5「验证命令」预期从 **70 / 70** 同步为 **90 / 90**、全量 **285 → 305**；待评审队列行同步；**C1（升级链抢签）请给决策**，C2 / C3 请纳入切片 6 规划输入；ROADMAP 切片 5 验收框建议合并评审后再标 ✅。本评审未改 PRD / ROADMAP / 验收标准。一处既有断言改写（`test_事实摘要齐备后交接通过` 补 coverage），理由与口径见意见 4，属「断言跟随契约」而非放宽。
 
 ---
+### 实现方对切片 5 评审意见的决策
+
+> 评审方修了 1 高 + 3 中高 + 4 中 + 3 低，补 20 条断言（切片 5 → 90 / 90）。
+> 下列是**留给实现方的 3 项咨询决策 + 5 项留档**，逐条给结论。
+
+| # | 评审条目 | 决策 | 落地位置 | 影响 |
+| --- | --- | --- | --- | --- |
+| **C1** | 升级链岗位可「抢跑」签核（上级未经任何超时升级即可直接签核） | **采纳评审方的字面口径，收紧**：PRD 8.7 把升级链写在**超时路径**里，因此上级岗位**必须先等到超时升级发生**才可接手签核。未超时就让上级接签，等同于 L1 静默放弃签核权——那是「绕过」，不是「升级」 | `agents/harness/gates.py` `_check_qualification()` 新增「非基础岗位且 `escalations` 为空 → 拒签」 | 切片 5 断言 90 → 96（`tests/test_gate_c1_escalation.py` 6 项：未超时拒签 / 超时后可签 / 基础岗不受影响 / 拒签留痕计数 / 拒签后仍可正常签核 / 退回同样受限） |
+| **C2** | 跨 build 的意见编号会撞号（退回重生成产出同号意见，切片 6 卷宗按 opinion_id 建键静默覆盖） | **落地切片 6 契约**：`Auditor.build(..., start_seq=N)` 支持编号基准，由编排器按轮次推进；卷宗键再叠加**修订维度** `opinion_id@rN`，两轮互不覆盖 | `agents/auditor.py` `build(start_seq=)`；`storage/dossier.py` `opinions_layer_payload(revision=)` | 切片 6 断言 48 → 59 |
+| **C3** | 改写留痕是「自觉登记」（`amended_by` 自由字符串，改 origin 不强制登记 amendment） | **落在卷宗层**：`OpinionOrigin` 增 `HUMAN_AMENDED`；卷宗组装时凡 `origin=human_amended` 的意见**必须**有对应 amendment 记录（含双版本与理由），否则**组装直接失败**。签核岗不登记改写，卷宗就装不出来 | `domain/opinion.py` `OpinionOrigin`；`storage/dossier.py` `opinions_layer_payload()` 抛 `DossierError` | 切片 6 断言 48 → 59 |
+| 建议 3 | 回放应把「重放推导 stage」做成校验而非唯一写入口 | **采纳并落地**：回放可传入案件当前阶段，与重放轨迹末态对账；不一致即判不可取证（视同 F-13 链断裂） | `agents/replay.py` `replay(expected_stage=)` + `ReplayResult.stage_consistent` | 可取证判定由 3 条件升为 5 条件 |
+| 建议 7 | `OP-<case_id>-<seq>` 跨轮不够用，卷宗键必须带修订维度 | 同 C2 | 同 C2 | — |
+| 建议 8 | `bypass_edges()` 自检应挂进回放校验 | **采纳并落地**：回放轨迹逐对检查是否在状态机白名单内，且全局 `bypass_edges()` 自检为空 | `agents/replay.py` `ReplayEngine.topology_ok()` + `ReplayResult.topology_ok` | 同上 |
+| A1 | `auto_advance` 只沿 MAIN_PATH，docstring 未写明主干之外不适用 | **留档，切片 7 落地 GATE-C 业务流时一并写清**（分支态与贷后段需显式 `transition()`） | 切片 7 输入 | — |
+| A2 | `verify.py` 绿行口径：skipped 不计入 passed，措辞不准 | **已修**：有 skipped 时输出改为「X / Y 通过（另有 N 项跳过）」，不再笼统写「全部通过」 | `scripts/verify.py` `main()` | — |
+| A3 | ROADMAP 验收框在评审前已标 ☑ | **已按评审意见修正时序**：切片 5 / 6 的 ☑ 与「已通过评审」在同一处落地，评审前只标 ☐ | `docs/ROADMAP.md`、待评审队列 | — |
+| A4 | 签核「场景类拒绝」（案件不在闸门口 / 未知闸门）未留痕 | **留档，切片 8 评测统一**：SEC-04 若要求「凡尝试皆记录」，在评测层统一补口径 | 切片 8 输入 | — |
+| A5 | `required_case_type` 降级为规格注记 | **留档，切片 9**：接真实权限体系时以本案 `case_type` 为准重建配置 | 切片 9 输入 | — |
+
+> 评审方对「评审方请确认」八项的答复已全部接受，无异议。答复中确认「17 状态与 PRD 8.5 逐字一致」「超时与升级链与 PRD 8.7 逐字一致」「Handoff 空数组 vs 缺失口径符合 PRD 8.6」。
+
+---
+
 ## 切片 6　事件日志、六层卷宗与案件回放
 
 | 项 | 内容 |
@@ -741,7 +764,7 @@ git commit -am "review: 切片 5 评审意见"
 | **分支** | `feat/impl` |
 | **切片目标** | 实现 PRD 8.9 / 8.10 的**可回放能力**：只追加事件日志 + 哈希链、案件卷宗六层与两档齐全性校验、按 seq 重放并与卷宗对账 |
 | **本次不含** | 贷后闭环业务流（切片 7）、评测框架与 Gate 判定（切片 8）、数据库与对象存储落盘（切片 9）、真实模型接入（切片 9） |
-| **验证命令** | `python scripts/verify.py --slice 6`（预期 **48 / 48 通过**）；全量 `python scripts/verify.py` 预期 **333 / 333 通过**；`python scripts/verify.py --checkpoint milestone` 额外打印**回放探针实测表** |
+| **验证命令** | `python scripts/verify.py --slice 6`（预期 **59 / 59 通过**：原 48 + 契约补修新增 11）；全量 `python scripts/verify.py` 预期 **370 / 370 通过**；`python scripts/verify.py --checkpoint milestone` 额外打印**回放探针实测表** |
 
 ### 改了什么
 
@@ -818,6 +841,21 @@ git commit -am "review: 切片 6 评审意见"
 ```
 
 ---
+### 实现方对切片 6 的补充（承接切片 5 评审的 C2 / C3 与建议 3 / 8）
+
+> 切片 5 评审明确「C2 / C3 属切片 6 契约」，故在本切片一并落地，不外溢到后续切片。
+
+| 项 | 落地内容 | 断言 |
+| --- | --- | --- |
+| C2 跨轮编号 | `Auditor.build(start_seq=)` + 卷宗键 `opinion_id@rN` | 两轮编号不撞 / 编号含基准 / 默认基准不变 / 卷宗键带修订维度（4 项） |
+| C3 改写留痕 | `OpinionOrigin.HUMAN_AMENDED` + 卷宗组装强校验（缺留痕即 `DossierError`） | 改写缺留痕则组装失败 / 有留痕则通过 / 普通意见不受影响（3 项） |
+| 建议 3 | 回放 `expected_stage` 对账 → `stage_consistent` | 阶段一致通过 / 不一致不可取证（2 项） |
+| 建议 8 | 回放轨迹拓扑自检 → `topology_ok` | 非法轨迹判不通过 / 合法轨迹通过（2 项） |
+
+> **可取证判定的条件由 3 条升为 5 条**：链完整 + 六层齐全 + 轨迹与卷宗一致 + 阶段与案件态一致 + 轨迹满足状态机拓扑。少一条都不是"可取证"。
+
+---
+
 ## 待评审队列
 
 | 切片 | 状态 | 等待评审 |
@@ -826,6 +864,7 @@ git commit -am "review: 切片 6 评审意见"
 | 2 | ✅ 已通过评审（合并 `review/impl` → `feat/impl`，评审后 55 → 落地咨询项后 58，全量 107） | 否 |
 | 3 | ✅ 已通过评审（已合并 `review/impl` → `feat/impl`，评审后 59 → 落地决策后 66） | 否 |
 | 4 | ✅ 已通过评审（已合并 `review/impl` → `feat/impl`，评审后 42 → 落地咨询决策后 42，另接 A4 交叉校验） | 否 |
-| 5 | ✅ 已实现，待评审（断言 70，全量 285） | **是** |
-| 6 | ✅ 已实现，待评审（断言 48，全量 333） | **是** |
+| 5 | ✅ 已通过评审（合并 `review/impl` → `feat/impl`，评审后 90 → 落地 C1 决策后 96，全量 370） | 否 |
+| 6 | ✅ 已实现，待评审（断言 59，全量 370；已承接 C2 / C3 与建议 3 / 8） | **是** |
+| 6.5 | ✅ 已实现，待评审（外部数据集固化与参数校准） | **是** |
 | 7—9 | ⬜ 未开始 | 否 |

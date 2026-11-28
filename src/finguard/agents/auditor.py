@@ -249,6 +249,7 @@ class Auditor:
         *,
         case_id: Optional[str] = None,
         bound_rule_total: Optional[int] = None,
+        start_seq: int = 0,
     ) -> OpinionBuildResult:
         """把判定结果转成结构化意见。
 
@@ -259,6 +260,9 @@ class Auditor:
         case_id          : 案件号。**给了就用它编意见编号**（OP-<case_id>-<seq>），
                           否则退回旧格式并在同一次 build 内去重（评审意见 5）。
         bound_rule_total : 本案实际绑定的规则条数，用于覆盖度交叉校验（评审留档 A4）。
+        start_seq        : 本轮成稿的编号基准（评审咨询 C2）。同一案件退回后重新成稿时
+                          由编排器推进该基准，否则两轮会产出**同号**意见，
+                          切片 6 卷宗按 opinion_id 建键就会静默覆盖。
 
         事实集只取一次 decision_ready()：判定链入口每次进入都会被审计钩子记录
         （切片 5 SEC-01），重复调用会把"进入判定链次数"放大成噪声。
@@ -371,7 +375,7 @@ class Auditor:
             # 无 case_id：退回 OP-<rule_id>-<version>，但同一次 build 内重复时补序号，
             # 杜绝"同号静默覆盖"。
             if case_id:
-                opinion_id = "OP-%s-%03d" % (case_id, len(opinions) + 1)
+                opinion_id = "OP-%s-%03d" % (case_id, start_seq + len(opinions) + 1)
             else:
                 base_id = "OP-%s-%s" % (draft.rule_id, draft.rule_version)
                 opinion_id = base_id

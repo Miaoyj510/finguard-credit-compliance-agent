@@ -82,12 +82,14 @@ SUITES: Dict[str, Dict] = {
         "desc": "状态机、Handoff 契约与三处人审闸门",
         "modules": ["tests.test_harness_states", "tests.test_handoff",
                     "tests.test_gates", "tests.test_orchestrator",
-                    "tests.test_audit_probe", "tests.test_harness_gate_gaps"],
+                    "tests.test_audit_probe", "tests.test_harness_gate_gaps",
+                    "tests.test_gate_c1_escalation"],
     },
     "replay": {
         "slice": 6,
         "desc": "事件日志、六层卷宗与案件回放",
-        "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay"],
+        "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay",
+                    "tests.test_slice6_contracts"],
     },
     "post": {
         "slice": 7,
@@ -535,9 +537,14 @@ def main() -> int:
 
     print()
     print("-" * 78)
+    skipped = len(result.skipped)
     if failed:
         print(_c("结果：%d / %d 通过，%d 个方法失败（%d 条失败断言）"
                  % (passed, total, failed, failed_assertions), RED, True))
+    elif skipped:
+        # A2：skipped 不计入 passed，措辞必须说清，不能笼统写"全部通过"
+        print(_c("结果：%d / %d 通过（另有 %d 项跳过）" % (passed, total, skipped),
+                 YELLOW, True))
     else:
         print(_c("结果：%d / %d 全部通过" % (passed, total), GREEN, True))
 

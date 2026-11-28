@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from ..storage.dossier import Completeness, Dossier, DossierLayer
 from ..storage.event_log import Event, EventLog
+from .harness.states import TRANSITIONS, bypass_edges
 
 __all__ = ["ConclusionTrace", "ReplayResult", "ReplayEngine"]
 
@@ -68,14 +69,25 @@ class ReplayResult:
     completeness: Completeness = Completeness.INCOMPLETE
     missing_layers: Tuple[str, ...] = ()
     matches_dossier: bool = False
+    # 评审建议 3：重放算出的最终阶段必须与案件当前阶段一致，
+    # 不一致即视同 F-13（链断裂）——案件状态与留痕对不上，不能用于取证。
+    stage_consistent: bool = True
+    # 评审建议 8：重放出的阶段轨迹必须满足状态机白名单且无绕行边。
+    topology_ok: bool = True
 
     @property
     def usable_for_audit(self) -> bool:
-        """能否用于监管取证：链完整 + 六层齐全 + 轨迹与卷宗一致，三者缺一不可。"""
+        """能否用于监管取证。
+
+        六个条件缺一不可：链完整 + 六层齐全 + 轨迹与卷宗一致
+        + 阶段与案件态一致 + 轨迹满足状态机拓扑。
+        """
         return (
             self.chain_ok
             and self.completeness is Completeness.COMPLETE
             and self.matches_dossier
+            and self.stage_consistent
+            and self.topology_ok
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -90,6 +102,8 @@ class ReplayResult:
             "completeness": self.completeness.value,
             "missing_layers": list(self.missing_layers),
             "matches_dossier": self.matches_dossier,
+            "stage_consistent": self.stage_consistent,
+            "topology_ok": self.topology_ok,
             "usable_for_audit": self.usable_for_audit,
         }
 
@@ -166,6 +180,20 @@ class ReplayEngine:
         )
 
     @staticmethod
+    def topology_ok(trace: ConclusionTrace) -> bool:
+        """重放轨迹是否满足状态机拓扑（评审建议 8）。
+
+        逐对检查相邻阶段是否在 ``TRANSITIONS`` 白名单内；再确认全局
+        ``bypass_edges()`` 自检为空——即状态机本身没有绕行边。
+        """
+        stages = trace.stages
+        for src, dst in zip(stages, stages[1:]):
+            allowed = TRANSITIONS.get(src)
+            if allowed is None or dst not in allowed:
+                return False
+        return not bypass_edges()
+
+    @staticmethod
     def _suffix_matches(replayed: Sequence[Any], recorded: Sequence[Any]) -> bool:
         """重放区间可能只是全程的后缀，因此与卷宗轨迹**按后缀比对**。"""
         if not replayed:
@@ -180,8 +208,13 @@ class ReplayEngine:
         case_id: str,
         from_seq: int = 1,
         to_seq: Optional[int] = None,
+        expected_stage: Optional[str] = None,
     ) -> ReplayResult:
-        """按 seq 重放指定案件，返回结论轨迹与可取证性判定。"""
+        """按 seq 重放指定案件，返回结论轨迹与可取证性判定。
+
+        ``expected_stage`` 传入案件当前阶段后，重放会把它与轨迹末态对账
+        （评审建议 3）；不传则跳过该项（只做链与卷宗两项校验）。
+        """
         events = self.log.since(case_id, from_seq)
         if to_seq is not None:
             events = tuple(e for e in events if e.seq <= to_seq)
@@ -197,6 +230,10 @@ class ReplayEngine:
             and self._suffix_matches(trace.opinion_ids, recorded.opinion_ids)
         )
 
+        stage_consistent = True
+        if expected_stage is not None:
+            stage_consistent = trace.final_stage == expected_stage
+
         return ReplayResult(
             case_id=case_id,
             from_seq=from_seq,
@@ -208,6 +245,8 @@ class ReplayEngine:
             completeness=verification.completeness,
             missing_layers=tuple(l.value for l in verification.missing_layers),
             matches_dossier=matches,
+            stage_consistent=stage_consistent,
+            topology_ok=self.topology_ok(trace),
         )
 
     # ---------------- 归因 ----------------
