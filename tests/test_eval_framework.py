@@ -92,7 +92,9 @@ class TestLoader(unittest.TestCase):
         self.assertEqual(sizes["EVAL-REV"], 30)
         # 每件 5 条规则 → 150 个版本对
         self.assertEqual(sizes["EVAL-VER"], 150)
-        self.assertEqual(sizes["EVAL-FACT"], 14)
+        # 15 = B1-006 补样后：GOLD-REV-018 增 approval_limit×approver_authority
+        # 事实层勾稽字段对（Q-08 补样规格），字段样本 14 → 15
+        self.assertEqual(sizes["EVAL-FACT"], 15)
 
     def test_版本对覆盖全部规则且含须人工判定(self):
         needs_human = [p for p in self.sets.ver if p.needs_human]
@@ -194,10 +196,21 @@ class TestReplay(EvalFixture):
     def test_事实层重放把低置信字段拦在判定链外(self):
         for replay in self.fact_replays:
             self.assertEqual(set(replay.ready) & set(replay.blocked), set())
+            # 勾稽/并列冲突拦截是另一条路：两路取值一致（高置信），但字段之间
+            # 勾稽不过——同样不得进判定链（切片 3 意见 2 的双拦口径）。
+            # B1-006 补入事实层勾稽字段对后，这条路径第一次有样本覆盖。
+            conflict_fields = set()
+            for item in replay.conflicts:
+                conflict_fields |= set(getattr(item, "involved_fields", ()))
             for name in replay.blocked:
+                if name in conflict_fields:
+                    continue
                 field = replay.merged.get(name)
                 if field is not None:
                     self.assertIs(field.confidence, Confidence.LOW, name)
+            # 反向钉住：冲突涉及字段必须真被拦（不许冲突入队了字段却进链）
+            self.assertEqual(conflict_fields & set(replay.ready), set(),
+                             "%s 勾稽冲突字段进了判定链" % replay.case_id)
 
 
 # ---------------------------------------------------------------- 3 指标
