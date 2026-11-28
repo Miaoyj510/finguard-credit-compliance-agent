@@ -278,6 +278,32 @@ class Harness:
         )
         return amendment
 
+    # ---------------- 留痕登记（切片 6） ----------------
+    def record_opinion(self, opinion: Any) -> None:
+        """登记一条审查意见（只写事件，不改状态机）。
+
+        意见的**进出由闸门签核决定**，这里只负责留痕：
+        PRD 11.3 要求「Agent 调用」的提示词版本、输出摘要、引用校验结果进日志，
+        切片 6 的回放要靠这些事件重建当时的意见清单。
+        """
+        self._log_event(
+            kind="opinion_generated",
+            actor="审查 Agent",
+            opinion_id=opinion.opinion_id,
+            rule_id=opinion.rule_id,
+            rule_version=opinion.rule_version,
+            severity=getattr(opinion.severity, "value", str(opinion.severity)),
+        )
+
+    def record_disposition(self, disposition: str, **detail: Any) -> None:
+        """登记风险处置决定（L6 处置与贷后闭环层）。"""
+        self._log_event(
+            kind="disposition",
+            actor="风险研判 Agent",
+            disposition=disposition,
+            **detail,
+        )
+
     # ---------------- 自动推进（遇闸门必停） ----------------
     def auto_advance(self, *, actor: str = "编排器") -> Stage:
         """沿主干路径自动推进，**遇到闸门立刻停下**。

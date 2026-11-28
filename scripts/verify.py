@@ -87,7 +87,7 @@ SUITES: Dict[str, Dict] = {
     "replay": {
         "slice": 6,
         "desc": "事件日志、六层卷宗与案件回放",
-        "modules": [],
+        "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay"],
     },
     "post": {
         "slice": 7,
@@ -333,9 +333,120 @@ def _pad(text, width):
     return text + " " * max(1, width - size)
 
 
-def print_security_probe_rows(rows, ok) -> None:
+def run_replay_probe():
+    """切片 6 现场探针：跑一条完整链路，看回放能不能复现当时的结论。
+
+    这不是跑断言，而是**真的走一遍案件**，把四个关键结论打成表：
+    哈希链完整、六层齐全、同案同起点重放一致、篡改能检出。
+    """
+    from datetime import date
+
+    from finguard.agents.harness.gates import Signer
+    from finguard.agents.harness.orchestrator import Harness
+    from finguard.agents.harness.states import Stage
+    from finguard.agents.replay import ReplayEngine
+    from finguard.domain.case import TripleKey
+    from finguard.domain.case_state import CaseFile
+    from finguard.domain.enums import CoverageFlag, Severity
+    from finguard.domain.opinion import ReviewOpinion
+    from finguard.facts.extract import RouteResult
+    from finguard.facts.layer import FactLayer
+    from finguard.facts.models import SourceChannel
+    from finguard.storage.dossier import (
+        Dossier,
+        DossierLayer,
+        disposition_layer_payload,
+        documents_layer_payload,
+        facts_layer_payload,
+        opinions_layer_payload,
+        rules_layer_payload,
+        signatures_layer_payload,
+    )
+    from finguard.storage.event_log import EventLog
+
+    case_id = "FG-PROBE-000002"
+    now = "2026-11-26T10:00:00"
+
+    def route(name, values):
+        return RouteResult(route=name, channel=SourceChannel.OCR, values=dict(values))
+
+    log = EventLog(clock=lambda: now)
+    case = CaseFile(
+        case_id=case_id,
+        triple_key=TripleKey(date(2026, 10, 28), "\u5c0f\u989d\u7ecf\u8425\u8d37", "\u4e8c\u7ea7\u5206\u884c"),
+    )
+    harness = Harness(case, event_sink=log.append_sink(), clock=lambda: now)
+    harness.auto_advance()
+    opinion = ReviewOpinion(
+        opinion_id="OP-%s-001" % case_id,
+        rule_id="R-CR-013",
+        rule_version="3.2.0",
+        severity=Severity.MAJOR,
+        fact_refs=("monthly_revenue",),
+        rationale="\u6d41\u6c34\u4e0e\u7533\u62a5\u8425\u6536\u504f\u79bb",
+        coverage=CoverageFlag.JUDGED,
+    )
+    harness.record_opinion(opinion)
+    harness.sign_gate("GATE-A", signer=Signer(
+        account_id="probe-001", display_name="\u63a2\u9488\u7b7e\u6838\u4eba",
+        role="\u5185\u63a7\u5408\u89c4\u5ba1\u67e5\u5c97", authority_level=2,
+        authorized_case_types=("corp_credit_review",),
+        device_fingerprint="probe-fp", ip="10.0.0.9",
+    ))
+    harness.transition(Stage.S4, actor="\u7f16\u6392\u5668")
+    harness.auto_advance()
+    harness.sign_gate("GATE-B", signer=Signer(
+        account_id="probe-002", display_name="\u63a2\u9488\u7814\u5224\u4eba",
+        role="\u98ce\u9669\u7814\u5224\u5c97", authority_level=3,
+        authorized_case_types=("corp_credit_review",),
+        device_fingerprint="probe-fp2", ip="10.0.0.10",
+    ))
+    harness.transition(Stage.S5, actor="\u7f16\u6392\u5668")
+    harness.record_disposition("\u8c03\u6574\u5173\u6ce8")
+    harness.transition(Stage.S6, actor="\u7f16\u6392\u5668")
+
+    a = {"monthly_revenue": 820000, "declared_revenue": 1000000}
+    factset, _q = FactLayer().build(route("vote", a), route("rule_check", a))
+    trail = [e["detail"]["to_stage"] for e in harness.events if e["kind"] == "stage_transition"]
+    dossier = Dossier(case_id, clock=lambda: now)
+    dossier.write(DossierLayer.L1, facts_layer_payload(factset))
+    dossier.write(DossierLayer.L2, rules_layer_payload(case.rule_binding, case.unresolved))
+    dossier.write(DossierLayer.L3, documents_layer_payload(
+        [{"doc_id": "D-1", "chunk_id": "C-1", "source_ref": "\u300a\u5236\u5ea6\u300b", "quote": "\u539f\u6587"}]))
+    dossier.write(DossierLayer.L4, opinions_layer_payload([opinion], spec_version="auditor-1.0"))
+    dossier.write(DossierLayer.L5, signatures_layer_payload(case.gates, trail))
+    dossier.write(DossierLayer.L6, disposition_layer_payload({"action": "\u8c03\u6574\u5173\u6ce8"}))
+
+    engine = ReplayEngine(log, dossier)
+    first = engine.replay(case_id, from_seq=1)
+    second = engine.replay(case_id, from_seq=1)
+
+    rows = []
+    rows.append(("\u4e8b\u4ef6\u65e5\u5fd7\u54c8\u5e0c\u94fe", "\u6574\u94fe\u91cd\u7b97\u6821\u9a8c", "\u901a\u8fc7",
+                 "\u901a\u8fc7" if log.verify().ok else "\u65ad\u88c2", log.verify().ok))
+    rows.append(("P-10 \u5377\u5b97\u9f50\u5168", "\u516d\u5c42\u5747\u5b58\u5728\u4e14\u54c8\u5e0c\u901a\u8fc7", "\u5b8c\u6574",
+                 dossier.verify().completeness.value, dossier.verify().ok))
+    rows.append(("\u56de\u653e\u4e00\u81f4\u6027", "\u540c\u6848\u540c\u8d77\u70b9\u4e24\u6b21\u91cd\u653e\u7ed3\u8bba\u76f8\u540c", "\u4e00\u81f4",
+                 "\u4e00\u81f4" if first.trace == second.trace else "\u4e0d\u4e00\u81f4", first.trace == second.trace))
+    rows.append(("\u5377\u5b97\u5bf9\u8d26", "\u91cd\u653e\u8f68\u8ff9\u4e0e\u5377\u5b97\u8bb0\u5f55\u4e00\u81f4", "\u4e00\u81f4",
+                 "\u4e00\u81f4" if first.matches_dossier else "\u4e0d\u4e00\u81f4", first.matches_dossier))
+    rows.append(("\u53ef\u53d6\u8bc1\u6027", "\u94fe\u5b8c\u6574 + \u516d\u5c42\u9f50\u5168 + \u8f68\u8ff9\u4e00\u81f4", "\u53ef\u53d6\u8bc1",
+                 "\u53ef\u53d6\u8bc1" if first.usable_for_audit else "\u4e0d\u53ef\u53d6\u8bc1", first.usable_for_audit))
+
+    # \u7be1\u6539\u68c0\u51fa\uff1a\u52a8\u4e00\u6761\u4e8b\u4ef6\u518d\u6821\u9a8c
+    events = list(log.events(case_id))
+    events[1].payload["to_stage"] = "S9"
+    tampered = log.verify()
+    rows.append(("\u7be1\u6539\u68c0\u51fa", "\u6539\u52a8\u4e00\u6761\u4e8b\u4ef6\u540e\u94fe\u6821\u9a8c\u5fc5\u987b\u5931\u8d25", "0",
+                 "\u5df2\u68c0\u51fa" if not tampered.ok else "\u672a\u68c0\u51fa", not tampered.ok))
+
+    ok = all(row[4] for row in rows)
+    return rows, ok
+
+
+def print_security_probe_rows(rows, ok, title="\u5b89\u5168\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 5\uff1a\u4e09\u5904\u4eba\u5ba1\u95f8\u95e8\uff09") -> None:
     print()
-    print(_c("\u5b89\u5168\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 5\uff1a\u4e09\u5904\u4eba\u5ba1\u95f8\u95e8\uff09", BOLD, True))
+    print(_c(title, BOLD, True))
     print("-" * 78)
     header = ("\u6307\u6807", "\u53e3\u5f84", "\u76ee\u6807", "\u5b9e\u6d4b", "\u7ed3\u8bba")
     print(_pad(header[0], 20) + _pad(header[1], 42) + _pad(header[2], 8)
@@ -447,6 +558,11 @@ def main() -> int:
         print_security_probe_rows(probe_rows, probe_ok)
         if not probe_ok:
             print(_c("\u5b89\u5168\u63a2\u9488\u672a\u8fbe\u6807\uff1a\u4e0d\u5f97\u8fdb\u5165\u4e0b\u4e00\u68c0\u67e5\u70b9\u3002", RED, True))
+            failed = failed or 1
+        replay_rows, replay_ok = run_replay_probe()
+        print_security_probe_rows(replay_rows, replay_ok, "\u56de\u653e\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 6\uff1a\u4e8b\u4ef6\u65e5\u5fd7\u4e0e\u5377\u5b97\u56de\u653e\uff09")
+        if not replay_ok:
+            print(_c("\u56de\u653e\u63a2\u9488\u672a\u8fbe\u6807\uff1a\u4e0d\u5f97\u8fdb\u5165\u4e0b\u4e00\u68c0\u67e5\u70b9\u3002", RED, True))
             failed = failed or 1
 
     print()
