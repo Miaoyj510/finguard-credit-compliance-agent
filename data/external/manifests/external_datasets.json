@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-28",
+  "policy": {
+    "execution": "归档内文件一律不执行；可执行后缀的成员在解压时被拒收（上游生成器源码只供人工阅读）",
+    "pinning": "Kaggle 公开接口不暴露 commit revision，故以 sha256(归档) + last_updated 双钉；归档字节数只作辅助（压缩后与接口报体积对不上）",
+    "runtime": "外部语料只用于参数校准与外部对照，永不进入运行时路径；原始件不进 Git",
+    "usage": "仅用于字段结构与分布校准，不作为公开对标值，不充当判分金标"
+  },
+  "datasets": [
+    {
+      "id": "credit-50k",
+      "name": "sergionefedov/credit-risk-dataset-50k-loans-10-sectors",
+      "url": "https://www.kaggle.com/api/v1/datasets/download/sergionefedov/credit-risk-dataset-50k-loans-10-sectors",
+      "sha256": "f8b5204c9fc51aaede294086e56b3ff4d0d322ae3e7d6f1fcc4a0191fb8f0254",
+      "bytes": 32421673,
+      "revision": "2026-08-22T21:01:56",
+      "revision_note": "Kaggle last_updated（公开接口不暴露 commit revision）",
+      "license": "MIT",
+      "attribution": "sergionefedov (Kaggle)",
+      "role": "事实层字段结构参照 + 期限/行业分布校准 + 贷后账龄结构参照",
+      "retrieved_at": "2026-11-28",
+      "external_sectors_field": "sector",
+      "not_used_for": "绝对金额分布、违约预测建模、会计口径 ECL"
+    },
+    {
+      "id": "bank-statements",
+      "name": "farihmuhammad/synthetic-indonesian-bank-statements",
+      "url": "https://www.kaggle.com/api/v1/datasets/download/farihmuhammad/synthetic-indonesian-bank-statements",
+      "sha256": "383accf8be8b721e99cb018f4d367b7c42ec1fb60440ea776c79d8465db41029",
+      "bytes": 10518105,
+      "revision": "2026-10-25T10:08:31",
+      "revision_note": "Kaggle last_updated（公开接口不暴露 commit revision）",
+      "license": "MIT",
+      "attribution": "farihmuhammad (Kaggle)",
+      "role": "对账单与流水结构参照 + 流水环比波动率校准 + 要素抽取语料",
+      "retrieved_at": "2026-11-28",
+      "not_used_for": "异常模式的判分金标（只作外部对照集）"
+    },
+    {
+      "id": "ifrs9-loan-book",
+      "name": "findi360/bank-loan-book-dataset-ifrs-9-staging-and-ecl",
+      "url": "https://www.kaggle.com/api/v1/datasets/download/findi360/bank-loan-book-dataset-ifrs-9-staging-and-ecl",
+      "sha256": "2892dd1e7780ee06e0ce3e207127862f79ca64332092a990fd10c7c758007c40",
+      "bytes": 154293,
+      "revision": "2026-11-25T11:03:32",
+      "revision_note": "Kaggle last_updated（公开接口不暴露 commit revision）",
+      "license": "CC BY 4.0",
+      "attribution": "findi360 (Kaggle) —— 署名义务，见 data/external/README.md",
+      "role": "贷后 staging 结构规则参照（30/90 天背板、Stage 1/2/3 划分）",
+      "retrieved_at": "2026-11-28",
+      "not_used_for": "ECL / PD 会计口径计算（本项目是合规口径，不是会计口径）"
+    }
+  ]
+}

@@ -15,6 +15,10 @@ data/out/
 data/tmp/
 *.log
 
+# 外部数据集原始件（切片 6.5）：体积大且可由 scripts/fetch_datasets.py 复拉，
+# 仓库里只保留 manifest（含 SHA256）、校准结果与映射表。
+data/external/_raw/
+
 # worktree（独立工作目录，不入库）
 .worktrees/
 

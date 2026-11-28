@@ -91,6 +91,11 @@ SUITES: Dict[str, Dict] = {
         "modules": ["tests.test_event_log", "tests.test_dossier", "tests.test_replay",
                     "tests.test_slice6_contracts"],
     },
+    "data": {
+        "slice": 6.5,
+        "desc": "外部数据集固化（SHA256 钉死）与参数校准（只出相对量）",
+        "modules": ["tests.test_data_prep"],
+    },
     "post": {
         "slice": 7,
         "desc": "贷后常驻循环、核查与 GATE-C",
@@ -115,6 +120,7 @@ SLICE_TITLES = {
     4: "审查意见与引用闸门",
     5: "Harness 编排与三处人审闸门",
     6: "事件日志、六层卷宗与回放",
+    6.5: "外部数据集固化与参数校准",
     7: "贷后循环与核查",
     8: "评测框架与 Gate 判定",
     9: "部署与生产就绪",
@@ -466,7 +472,7 @@ def main() -> int:
     _reconfigure_streams()
     ap = argparse.ArgumentParser(description="FinGuard 验证入口")
     ap.add_argument("--list", action="store_true", help="列出切片与套件状态")
-    ap.add_argument("--slice", type=int, default=None, help="只跑指定切片的套件")
+    ap.add_argument("--slice", type=float, default=None, help="只跑指定切片的套件（支持 6.5 这类子切片）")
     ap.add_argument("--suite", default=None, help="只跑指定套件（逗号分隔）")
     ap.add_argument("--checkpoint", choices=["commit", "daily", "milestone"], default=None,
                     help="检查点：commit / daily 跑累积回归；milestone 附加 Gate 对照")
