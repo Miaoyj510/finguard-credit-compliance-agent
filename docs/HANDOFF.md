@@ -1507,9 +1507,20 @@ git commit -am "review: 切片 7.2 评审意见"
 
 **给实现方 / 仲裁人的三件事**：
 
-1. **A-01 请裁决**：coverage 是否并入绑定级须人工判定（PRD 8.4/10.2.1 口径 vs 现 Auditor 口径）。金标按 PRD 口径冻结；切片 8 的 Q-10 / GATE-1 计分口径取决于此裁决。
+1. **A-01 已裁决（选项①）且实现方已在 feat/impl 落地**（`Auditor.build(unresolved_bindings=…)` / `CoverageSummary.binding_unresolved`，见切片 8.0/9.0 提交）——**尚未经评审验证**，并入下轮切片 8/9 评审；金标口径不变。
 2. **请产出标注人 A 的同批 30 件独立标注**（或声明以系统输出为 A 侧对照），分歧进 ARBITRATION.md B1-002；双人分歧清零后批次去 `-draft` 冻结。
-3. 切片 8 的评测加载器直接消费 `data/gold/`（schema 见模板）；EVAL-VER 30 组版本对与 EVAL-POST 150 件按规范书第 8 节排期（W2 / W7）。
+3. 切片 8 的评测加载器直接消费 `data/gold/`（schema 见模板）；EVAL-VER 30 组版本对与 EVAL-POST 150 件按规范书第 9 节排期（W2 / W7）。
+
+### 覆盖性自查（2026-11-28，评审方自检「还有没审到的部分吗」）
+
+| 项 | 结论 |
+| --- | --- |
+| SHA256 钉死实测 | **三份数据集全部实拉通过**（credit-50k / bank-statements / ifrs9-loan-book：下载→SHA256 相符→解压；bank-statements 实拒 20 个可执行成员，拒收路径真机验证）；`_raw/` 确认被 .gitignore 挡住 |
+| 已深审 | 切片 1—7.5 全部、B 线金标、PRD v1.4 补录 |
+| 已验证未深审 | 实现方决策落地提交 `2b3646a / 78f5391 / bc1c978 / a45e01f`（回归绿 + 抽查；a45e01f 的切片 7 C1 改「按案件跳过 + scan_skipped 事件」、C2 维持不重报，与裁决一致） |
+| **未审（下轮范围）** | 切片 8.0 金标基础设施（`eval/synth.py`、`eval/gold.py`、build_gold_pack / compare_gold、GOLD_LABELING 协议、pack 双批次）、切片 9.0（持久化落库与只读 API）、A-01 落地实现、上述四个决策落地提交的逐条深读 |
+| B 线协议缺陷 | P-1 拆分标注 vs 双标要求（B1-003）、P-2 真值入库盲性靠自觉（B1-004）、P-3 评审方对 FG-B-0001…0005 失盲披露（B1-005，待仲裁） |
+| PRD 陈旧表述 | 第 8 章要点「Handoff **12 项**必填字段表」与 8.6 表（14 项）不符——转 PRD 责任人修订（评审方授权范围仅登录线框，不代改） |
 
 ---
 ## 裁决记录（用户 / 仲裁人）
