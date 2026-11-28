@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 from ...domain.case_state import CaseFile, STAGE_WRITE_TOKEN
 from .audit import DecisionChainAuditLog
 from .gates import Amendment, GateRecord, GateState, Signer, gate_id_for
+from .timeutil import normalize_timestamp
 from .handoff import Handoff
 from .states import (
     GATE_ENTRY,
@@ -88,7 +89,9 @@ class Harness:
         self._seq += 1
         event = {
             "seq": self._seq,
-            "at": self._now(),
+            # 事件时间戳与闸门签核时间戳**同一口径**（naive UTC，评审咨询 C2）：
+            # 两者是同一个事实的两种写法，带时区时钟下混用会让签核对账失配。
+            "at": normalize_timestamp(self._now(), "事件时间戳"),
             "kind": kind,
             "case_id": self.case.case_id,
             "stage": self.case.stage.value,

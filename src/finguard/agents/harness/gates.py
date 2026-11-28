@@ -18,24 +18,25 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from .states import GateSignError, Stage
+from .timeutil import TimestampError, normalize_timestamp
 
 
 def _parse_time(text: Any, what: str = "时间") -> datetime:
     """把 ISO 8601 时间字符串解析成**无时区的 UTC** datetime。
 
-    时间戳是签核证据与超时判定的共同口径，坏值必须响亮拒绝：
+    口径**唯一**：与事件日志的 ``at`` 共用 ``timeutil.normalize_timestamp``
+    （评审咨询 C2）——两者是同一个事实的两种写法，naive 与 aware 混用会让
+    签核对账在带时区时钟下失配。
+
+    坏值必须响亮拒绝：
     · 非字符串 / 不可解析 → GateSignError（不是 ValueError，编排层统一口径）
     · 带时区 → 归一为 UTC 裸时间（否则 naive 与 aware 比较会 TypeError）
     · 微秒精度 → 接受（时钟常见格式）
     """
-    if not isinstance(text, str):
-        raise GateSignError("%s须为 ISO 8601 字符串，收到 %r" % (what, text))
     try:
-        parsed = datetime.fromisoformat(text)
-    except ValueError:
-        raise GateSignError("%s无法解析（须为 ISO 8601）：%r" % (what, text))
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        parsed = datetime.fromisoformat(normalize_timestamp(text, what))
+    except TimestampError as exc:
+        raise GateSignError(str(exc))
     return parsed
 
 __all__ = [

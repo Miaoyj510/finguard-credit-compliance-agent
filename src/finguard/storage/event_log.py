@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from dataclasses import dataclass
@@ -129,15 +130,27 @@ class EventLog:
         payload: Optional[Mapping[str, Any]] = None,
         at: Optional[str] = None,
     ) -> Event:
-        """追加一条事件。seq 自动连续，不接受外部指定。"""
+        """追加一条事件。seq 自动连续，不接受外部指定。
+
+        payload **深拷贝入库**（评审 RP5）：调用方在 append 之后复用或改动
+        自己传入的嵌套 dict，不应把一条合法事件变成「被篡改」——留痕与调用方
+        内存必须隔离。同时不可 JSON 序列化的 payload 归入 EventLogError，
+        不让 TypeError 裸奔（调用方能拿到统一口径的失败原因）。
+        """
         if not isinstance(case_id, str) or not case_id.strip():
             raise EventLogError("事件缺少 case_id")
         if not isinstance(kind, str) or not kind.strip():
             raise EventLogError("事件缺少 kind")
-        body = dict(payload or {})
+        if payload is not None and not isinstance(payload, Mapping):
+            raise EventLogError("事件 payload 须为映射，收到 %r" % type(payload).__name__)
+        body = copy.deepcopy(dict(payload or {}))
         seq = len(self._events) + 1
         prev_hash = self._events[-1].hash if self._events else GENESIS_HASH
         moment = at or self._clock()
+        try:
+            digest = compute_hash(seq, case_id, kind, moment, body, prev_hash)
+        except (TypeError, ValueError) as exc:
+            raise EventLogError("事件 payload 不可 JSON 序列化：%s" % exc)
         event = Event(
             seq=seq,
             case_id=case_id,
@@ -145,7 +158,7 @@ class EventLog:
             at=moment,
             payload=body,
             prev_hash=prev_hash,
-            hash=compute_hash(seq, case_id, kind, moment, body, prev_hash),
+            hash=digest,
         )
         self._events.append(event)
         self._by_case.setdefault(case_id, []).append(event)

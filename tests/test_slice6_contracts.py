@@ -170,6 +170,60 @@ class TestReplayCrossChecks(unittest.TestCase):
         self.assertTrue(ok)
 
 
+class TestTimestampUnification(unittest.TestCase):
+    """C2：事件时间戳与签核时间戳必须**同一口径**（naive UTC）。
+
+    评审方指出：naive 时钟下两者恒等（看不出问题），
+    **带时区时钟下会失配**——签核对账判不一致，回放报"当时与现在对不上"。
+    """
+
+    def test_带时区归一为naiveUTC(self):
+        from finguard.agents.harness.timeutil import normalize_timestamp
+        self.assertEqual(
+            normalize_timestamp("2026-11-26T10:00:00+08:00"), "2026-11-26T02:00:00"
+        )
+
+    def test_归一是幂等的(self):
+        from finguard.agents.harness.timeutil import normalize_timestamp
+        once = normalize_timestamp("2026-11-26T10:00:00+08:00")
+        self.assertEqual(normalize_timestamp(once), once)
+
+    def test_坏值被拒(self):
+        from finguard.agents.harness.timeutil import TimestampError, normalize_timestamp
+        for bad in ("昨天", "", 12345, None):
+            with self.assertRaises(TimestampError):
+                normalize_timestamp(bad)
+
+    def test_带时区时钟下事件与签核时间戳一致(self):
+        """这是 C2 的核心断言：两种写法、同一时刻、同一口径。"""
+        from datetime import date
+        from finguard.agents.harness.gates import Signer
+        from finguard.agents.harness.orchestrator import Harness
+        from finguard.domain.case import TripleKey
+        from finguard.domain.case_state import CaseFile
+        from finguard.agents.harness.states import Stage
+
+        stamp = "2026-11-26T10:00:00+08:00"
+        case = CaseFile(
+            case_id="FG-TS-000001",
+            triple_key=TripleKey(date(2026, 10, 28), "小额经营贷", "二级分行"),
+        )
+        harness = Harness(case, clock=lambda: stamp)
+        harness.transition(Stage.S1, actor="编排器")
+        harness.transition(Stage.S2, actor="编排器")
+        harness.transition(Stage.S3, actor="编排器")
+        harness.transition(Stage.GATE_A, actor="编排器")
+        harness.sign_gate("GATE-A", signer=Signer(
+            account_id="u-a", display_name="李合规", role="内控合规审查岗",
+            authority_level=2, authorized_case_types=("corp_credit_review",),
+            device_fingerprint="fp-a", ip="10.0.0.8"))
+        signed_at = case.gates["GATE-A"].signed_at
+        event_at = [e["at"] for e in harness.events if e["kind"] == "gate_signed"][0]
+        self.assertEqual(signed_at, event_at)
+        self.assertNotIn("+08:00", event_at)
+        self.assertNotIn("+", signed_at)
+
+
 class _FakeLog:
     """极简日志替身：按给定阶段序列造出可回放的事件。"""
 
