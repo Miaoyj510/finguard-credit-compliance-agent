@@ -219,7 +219,7 @@ class TestLoginPage(unittest.TestCase):
         self.assertTrue(keys, "app.js 未定义岗位映射")
         self.assertEqual(keys, accounts, "账号与岗位映射不一致")
 
-    def test_四个演示岗位对应四处闸门(self):
+    def test_四个演示岗位对应三处闸门与只读岗(self):
         for token in ("合规审查岗", "风险研判岗", "贷后管理岗", "内审稽核岗",
                       "GATE-A", "GATE-B", "GATE-C"):
             self.assertIn(token, self.html)
