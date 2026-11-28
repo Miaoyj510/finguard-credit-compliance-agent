@@ -98,8 +98,9 @@ SUITES: Dict[str, Dict] = {
     },
     "post": {
         "slice": 7,
-        "desc": "贷后常驻循环、核查与 GATE-C",
-        "modules": [],
+        "desc": "贷后常驻循环、核查初核与 GATE-C 处置四档",
+        "modules": ["tests.test_post_monitor", "tests.test_verifier",
+                    "tests.test_post_flow"],
     },
     "eval": {
         "slice": 8,
@@ -452,6 +453,86 @@ def run_replay_probe():
     return rows, ok
 
 
+def run_post_probe():
+    """切片 7 现场探针：贷后闭环能不能守住闸门、算不算得对提前量。"""
+    from datetime import date
+
+    from finguard.agents.harness.gates import Signer
+    from finguard.agents.harness.orchestrator import Harness
+    from finguard.agents.harness.states import GateBypassError, Stage
+    from finguard.agents.post_loop import PostFlow
+    from finguard.agents.post_monitor import PostMonitorAgent
+    from finguard.agents.verifier import VerifierAgent
+    from finguard.domain.case import TripleKey
+    from finguard.domain.case_state import CaseFile
+    from finguard.domain.post import PostCaseView
+    from finguard.rules.post_seeds import post_rule_map
+
+    rows = []
+
+    case = CaseFile(
+        case_id="FG-PROBE-000003",
+        triple_key=TripleKey(date(2026, 1, 15), "\u5c0f\u989d\u7ecf\u8425\u8d37", "\u4e8c\u7ea7\u5206\u884c"),
+    )
+    harness = Harness(case, clock=lambda: "2026-03-01T09:00:00")
+    monitor = PostMonitorAgent(post_rule_map(), clock=lambda: "2026-03-01T09:00:00")
+    flow = PostFlow(harness, monitor, VerifierAgent(clock=lambda: "2026-03-01T09:00:00"))
+
+    # \u63a8\u8fdb\u5230 S6\uff08\u4e3b\u5e72\u8def\u5f84\uff09
+    harness.transition(Stage.S1, actor="\u7f16\u6392\u5668")
+    harness.transition(Stage.S2, actor="\u7f16\u6392\u5668")
+    harness.transition(Stage.S3, actor="\u7f16\u6392\u5668")
+    harness.transition(Stage.GATE_A, actor="\u7f16\u6392\u5668")
+    harness.sign_gate("GATE-A", signer=Signer(
+        account_id="p-a", display_name="\u63a2\u9488\u7b7e\u6838\u4eba",
+        role="\u5185\u63a7\u5408\u89c4\u5ba1\u67e5\u5c97", authority_level=2,
+        authorized_case_types=("corp_credit_review",),
+        device_fingerprint="p-fp", ip="10.0.0.30"))
+    harness.transition(Stage.S4, actor="\u7f16\u6392\u5668")
+    harness.transition(Stage.GATE_B, actor="\u7f16\u6392\u5668")
+    harness.sign_gate("GATE-B", signer=Signer(
+        account_id="p-b", display_name="\u63a2\u9488\u7814\u5224\u4eba",
+        role="\u98ce\u9669\u7814\u5224\u5c97", authority_level=3,
+        authorized_case_types=("corp_credit_review",),
+        device_fingerprint="p-fp2", ip="10.0.0.31"))
+    harness.transition(Stage.S5, actor="\u7f16\u6392\u5668")
+    harness.transition(Stage.S6, actor="\u7f16\u6392\u5668")
+
+    view = PostCaseView(
+        case_id="FG-PROBE-000003", product_type="\u5c0f\u989d\u7ecf\u8425\u8d37",
+        org_level="\u4e8c\u7ea7\u5206\u884c", baseline_date="2026-01-15",
+        rule_bindings=(("R-PM-001", "1.0.0"),),
+        facts={"days_past_due": 45},
+        field_meta={"days_past_due": {"channel": "api", "confidence": "\u9ad8"}},
+    )
+    flow.enter_monitoring(view)
+    decoupled = not hasattr(view, "case") and not hasattr(view, "gates")
+    rows.append(("FR-POST-01 \u5faa\u73af\u89e3\u8026", "\u8ddf\u8e2a\u89c6\u56fe\u4e0d\u542b\u4e3b\u6d41\u7a0b\u6848\u4ef6\u5f15\u7528", "\u89e3\u8026",
+                 "\u5df2\u89e3\u8026" if decoupled else "\u672a\u89e3\u8026", decoupled))
+
+    alerts = flow.scan("2026-03-01")
+    lead_ok = bool(alerts) and alerts[0].lead_time_days == 45
+    rows.append(("FR-POST-04 \u63d0\u524d\u91cf\u57fa\u51c6", "\u4ee5\u653e\u6b3e\u65e5\u4e3a\u57fa\u51c6\uff082026-01-15 \u2192 2026-03-01 = 45\u5929\uff09", "45\u5929",
+                 "%d\u5929" % (alerts[0].lead_time_days if alerts else -1), lead_ok))
+
+    flow.verify(alerts[0], {"days_past_due": 45})
+    flow.submit_for_disposition(alerts[0])
+    blocked = False
+    try:
+        harness.transition(Stage.S9, actor="\u7f16\u6392\u5668")
+    except GateBypassError:
+        blocked = True
+    rows.append(("SEC-03 \u8d37\u540e\u7ed5\u884c", "\u672a\u7b7e\u6838\u76f4\u63a5\u843d\u5904\u7f6e\u5fc5\u987b\u88ab\u62e6", "0",
+                 "\u5df2\u62e6\u622a" if blocked else "\u672a\u62e6\u622a", blocked))
+
+    pending = harness.case.gates["GATE-C"].state.value == "PENDING"
+    rows.append(("FR-POST-01 \u4e8b\u4ef6\u5904\u7f6e", "\u672a\u7b7e\u6838\u65f6\u8d37\u540e\u5904\u7f6e\u4e0d\u843d\u5730", "\u4e0d\u843d\u5730",
+                 "\u4e0d\u843d\u5730" if (blocked and pending) else "\u843d\u5730", blocked and pending))
+
+    ok = all(row[4] for row in rows)
+    return rows, ok
+
+
 def print_security_probe_rows(rows, ok, title="\u5b89\u5168\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 5\uff1a\u4e09\u5904\u4eba\u5ba1\u95f8\u95e8\uff09") -> None:
     print()
     print(_c(title, BOLD, True))
@@ -576,6 +657,11 @@ def main() -> int:
         print_security_probe_rows(replay_rows, replay_ok, "\u56de\u653e\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 6\uff1a\u4e8b\u4ef6\u65e5\u5fd7\u4e0e\u5377\u5b97\u56de\u653e\uff09")
         if not replay_ok:
             print(_c("\u56de\u653e\u63a2\u9488\u672a\u8fbe\u6807\uff1a\u4e0d\u5f97\u8fdb\u5165\u4e0b\u4e00\u68c0\u67e5\u70b9\u3002", RED, True))
+            failed = failed or 1
+        post_rows, post_ok = run_post_probe()
+        print_security_probe_rows(post_rows, post_ok, "\u8d37\u540e\u63a2\u9488\u5b9e\u6d4b\uff08\u5207\u7247 7\uff1a\u5e38\u9a7b\u5faa\u73af\u3001\u63d0\u524d\u91cf\u4e0e GATE-C\uff09")
+        if not post_ok:
+            print(_c("\u8d37\u540e\u63a2\u9488\u672a\u8fbe\u6807\uff1a\u4e0d\u5f97\u8fdb\u5165\u4e0b\u4e00\u68c0\u67e5\u70b9\u3002", RED, True))
             failed = failed or 1
 
     print()

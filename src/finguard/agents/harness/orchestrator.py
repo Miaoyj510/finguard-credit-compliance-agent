@@ -329,6 +329,15 @@ class Harness:
             severity=getattr(opinion.severity, "value", str(opinion.severity)),
         )
 
+    def record_note(self, kind: str, **detail: Any) -> None:
+        """通用留痕入口（只写事件，不改状态机）。
+
+        切片 7 用它记录「转入贷后监测时案件类型由 corp_credit_review 切换为
+        post_monitoring」这件事——案件号不变，但案件类型变了（PRD 8.4 的
+        case_type 是三选一），切换必须留痕，否则回放时无法还原当时的口径。
+        """
+        self._log_event(kind=kind, actor="编排器", **detail)
+
     def record_disposition(self, disposition: str, **detail: Any) -> None:
         """登记风险处置决定（L6 处置与贷后闭环层）。"""
         self._log_event(
